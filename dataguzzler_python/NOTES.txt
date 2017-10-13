@@ -1,0 +1,54 @@
+General architecture
+--------------------
+
+  * Multithreaded. Python GIL used to serialize old-style C modules
+  * Builds on python3 asyncio/eventloops
+  
+  * use *mm, etc. to define units. (maybe build on limatix units package
+    and dc_value?
+
+Bugs
+----
+Upload waveform size limited by hardwired asyncio reader buffer limit
+(set in mainloop.py)
+
+Locking architecture
+--------------------
+Python GIL: Used to serialize access to dataguzzler libraries such
+as wfmstore.
+
+pydg contexts: Each pydg context (such as a connection or module)
+has a _pydg_contextlock member.
+
+Each thread has a thread-local context stack (stored in
+pydg.ThreadContext.execution). Only the topmost (first)
+element is locked. As threads make calls to different modules,
+the module wrappers trigger a context push and the the old context
+is released and the new context is locked. 
+
+Module code can therefore only be called by a single thread at a
+time. Therefore the module does not need to worry about locking,
+unless it uses multi-threaded libraries itself. If so,
+it can freely define and use locks, so long as those locks are
+never held when returning from a method call or when
+calling a callback (i.e. the lock must not be held by a thread
+that is switching context)
+
+The above protocol will handle all low-level intra-module
+concurrency issues.
+
+To address inter-module concurrency issues, propose a higher-level
+locking manager that can post locks on specific methods
+of a module (or even an entire module), multiple methods of
+different modules, multiple modules, etc. 
+
+Once locked, all connected modules/methods/etc can be called only externally
+(by a change of context or by an explicit external call from inside the
+module) and only one thread at a time can
+posess the lock. The lock is kept by the thread inherited through changes
+of context and can be recursively re-locked and un-locked.
+
+This way, the lock can prevent simultaneous access to critical syncronization
+routines.
+
+
