@@ -8,13 +8,19 @@ import numpy as np
 #ext_modules=cythonize("dataguzzler_python/*.pyx")
 
 dgold_ext= Extension("dataguzzler_python.dgold",
-                         sources=["dataguzzler_python/dgold.pyx","dataguzzler_python/dgold_rpc_c.c"],
+                         sources=["dataguzzler_python/dgold.pyx","dataguzzler_python/dgold_rpc_c.c","dataguzzler_python/dgold_module_c.c","dataguzzler_python/dgold_locking_c.c"],
                          include_dirs=[ np.get_include() ] + ["/usr/local/dataguzzler-lib/include","/usr/local/dataguzzler/include/dg_internal"],
                          library_dirs=[ "/usr/local/dataguzzler-lib/lib", "/usr/local/dataguzzler/lib/dg_internal"],
-                         libraries=[ "dg_internal", "dg_comm", "dataguzzler" ],
+                         libraries=[ "dg_internal", "dg_comm", "dataguzzler", "dg_units" ],
+                         extra_link_args=["-shared-libgcc","-lrt","-lgcc","-lpthread","-Wl,-rpath,/usr/local/dataguzzler/lib/dg_internal","-Xlinker","--export-dynamic","-Wl,-rpath,/usr/local/dataguzzler-lib/lib"])
+savewfm_ext=Extension("dataguzzler_python.savewfm",
+                      sources=["dataguzzler_python/savewfm.pyx" ],
+                      include_dirs=[ np.get_include() ] + ["/usr/local/dataguzzler-lib/include","/usr/local/dataguzzler/include/dg_internal"],
+                         library_dirs=[ "/usr/local/dataguzzler-lib/lib", "/usr/local/dataguzzler/lib/dg_internal"],
+                         libraries=[ "dg_internal", "dg_comm", "dataguzzler", "dg_units" ],
                          extra_link_args=["-shared-libgcc","-lrt","-lgcc","-lpthread","-Wl,-rpath,/usr/local/dataguzzler/lib/dg_internal","-Xlinker","--export-dynamic","-Wl,-rpath,/usr/local/dataguzzler-lib/lib"])
 
-ext_modules=[ dgold_ext ]
+ext_modules=[ dgold_ext,savewfm_ext ]
 console_scripts=["dataguzzler_python"]
 
 console_scripts_entrypoints = [ "%s = dataguzzler_python.bin.%s:main" % (script,script) for script in console_scripts ]

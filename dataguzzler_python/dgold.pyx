@@ -1,6 +1,9 @@
 import sys
+import time
 from .pydg import Module as pydg_Module
 from .pydg import CurContext
+
+from threading import Thread,Lock
 
 cimport cpython.pycapsule as pycapsule
 from cpython.ref cimport PyObject
@@ -11,9 +14,12 @@ cimport posix.time
 ctypedef void (*ContinuationFunction)(int retval,unsigned char *res,Module *Mod,Conn *Conn,void *Param)
 ctypedef void (*ConnDestructor)(Module Mod, Conn C, void *Param)
 
+
 cdef extern from "sys/poll.h":
      pass
 
+cdef extern from "dg_units.h":
+     pass
      
 
 cdef extern from "dg_linklist.h":
@@ -67,11 +73,11 @@ cdef extern from "init.h":
 cdef extern from "mod.h":
     cdef struct Module:
         pass
-    void StartModule(InitAction *Init,char *dg_bindir);
+    void StartModule(InitAction *Init,char *dg_bindir) nogil
     pass
 
 cdef extern from "library.h":
-    void StartLibrary(InitAction *Init,char *dg_bindir)
+    void StartLibrary(InitAction *Init,char *dg_bindir) nogil
     pass
 
 
@@ -80,8 +86,22 @@ cdef extern from "rpc.h":
     cdef struct RPC_Asynchronous:
         pass
 
-    RPC_Asynchronous *rpc_asynchronous_str_persistent(Module *Mod,Conn *Conn,int ImmediateOK,Conn *DummyConn,int PersistentFlag,void *Param,ContinuationFunction Continuation,ConnDestructor CD,unsigned char *str)
+    RPC_Asynchronous *rpc_asynchronous_str_persistent(Module *Mod,Conn *Conn,int ImmediateOK,Conn *DummyConn,int PersistentFlag,void *Param,ContinuationFunction Continuation,ConnDestructor CD,unsigned char *str) nogil
     pass
+
+
+cdef extern from "dgold_module_c.h":
+    void ModWakeupLoop() nogil
+    pass
+
+cdef extern from "dgold_locking_c.h":
+    void dg_enter_main_context_c() nogil
+    void dg_leave_main_context_c() nogil
+    void dg_enter_main_context() 
+    void dg_leave_main_context() 
+    void dg_main_context_init() nogil
+    pass
+
 
 
 cdef public char *SetQueryPrefix
@@ -108,6 +128,12 @@ dgl_NewList(&InitActionList)
 dgl_NewList(&ConnList)
 dgl_NewList(&ModuleList)
 
+dgmainloop_started=False
+
+with nogil: 
+     dg_main_context_init()
+     pass
+
 
 class DataguzzlerError(Exception):
     pass
@@ -118,22 +144,39 @@ cdef void DummyConnCapsule_Destructor(object capsule):
     DeleteConn(dummyconn)
     pass
 
-cdef void dgold_rpc_continuation(int retval, unsigned char *res, Module *Mod, Conn *conn,void *param):
+
+cdef void dgold_rpc_continuation_core(int retval, unsigned char *res, Module *Mod, Conn *conn,void *param):
     cdef bytes py_bytes
     cdef PyObject *param_pyobj
     cdef object paramobj
-
+    
     param_pyobj=<PyObject *>param
     paramobj=<object>param  # actually a list
     py_bytes=res
     paramobj.append(retval)
     paramobj.append(py_bytes)
+
+
     pass
 
+cdef void dgold_rpc_continuation(int retval, unsigned char *res, Module *Mod, Conn *conn,void *param) nogil:
+
+    dg_leave_main_context_c()    
+    with gil:
+        dgold_rpc_continuation_core(retval,res,Mod,conn,param)
+        pass
+    dg_enter_main_context_c()
+    pass
 
 # FIXME: Should use AddAtExitFunc to enable cleanups of stuff in /dev/shm
-cdef public AtExitFunc *AddAtExitFunc(void (*Func)(AtExitFunc *, void *Param),void *UserData):
+cdef public AtExitFunc *AddAtExitFunc(void (*Func)(AtExitFunc *, void *Param),void *UserData) nogil: 
     return NULL
+
+cdef public void QuitError() nogil:
+    with gil:
+        exit(1)
+        pass
+    pass
 
 
 def rpc_authenticated(context):
@@ -146,6 +189,8 @@ def rpc_authenticated(context):
 def rpc_async(context,bytes cmdbytes):
     cdef Conn *dummyconn
     cdef object retlistobj
+    cdef void *restlistptr
+    cdef unsigned char *cmdbytesptr
 
     try:
         dccapsule=object.__getattribute__(context,"_pydg_dgold_rpc_dummyconn")
@@ -161,18 +206,49 @@ def rpc_async(context,bytes cmdbytes):
 
     retlist=[]
     retlistobj=retlist
-    
-    rpc_asynchronous_str_persistent(NULL,NULL,1,dummyconn,1,<void *>retlistobj,dgold_rpc_continuation,NULL,cmdbytes)
+    retlistptr=<void*>retlistobj
+    cmdbytesptr=cmdbytes
+    with nogil:
+        dg_enter_main_context_c()
+        rpc_asynchronous_str_persistent(NULL,NULL,1,dummyconn,1,retlistptr,dgold_rpc_continuation,NULL,cmdbytesptr)
+        dg_leave_main_context_c()
+        pass
 
     retval=retlist[0]
     retbytes=retlist[1]
 
     return (retval,retbytes)
 
-def cmd(cmdstr):
+def _rawcmd(cmdstr):
     # shorthand for rpc_async(CurContext(),cmdstr.encode('utf-8'))
     (retval,retbytes)=rpc_async(CurContext(),cmdstr.encode('utf-8'))
     return (retval,retbytes.decode('utf-8'))
+
+def dgmainloop():
+    with nogil:
+        ModWakeupLoop()
+        pass
+    pass
+
+
+def start_mainloop_thread():
+    thread=Thread(target=dgmainloop,daemon=True)
+    thread.start()
+    return thread
+
+
+
+def cmd(cmdstr):
+    """ ***!!! WARNING: This does not change context, and should probably be modified to 
+    identify the modules being reference and shift into their contexts!
+    For the moment all traditional dataguzzler modules are protected 
+    by the Python GIL... so it module context probably doesn't really 
+    matter. Nevertheless it would be nice to insert a hook into the 
+    command processor to correctly set the context. 
+    Once wfmstore and similar libraries are thread-safe based on 
+    their own locks then it would be possible to release the GIL and 
+    let dataguzzler modules multi-thread. """
+    return _rawcmd(cmdstr)
 
 def library(SOName,initparams=""):
     cdef InitAction Action
@@ -190,7 +266,11 @@ def library(SOName,initparams=""):
     Action.SOName=<char *>SONameBytes
     Action.ParenParams=NULL
 
-    StartLibrary(&Action,"/usr/local/dataguzzler/libraries")
+    dg_enter_main_context()
+    with nogil:
+        StartLibrary(&Action,"/usr/local/dataguzzler/libraries")
+        pass
+    dg_leave_main_context()
 
     pass
 
@@ -204,6 +284,13 @@ class DGModule(object,metaclass=pydg_Module):
 
         self.Name=Name
         
+        
+        if not(dgmainloop_started):  # NOTE: OK to access globals because class definitions should only be run during initial configuration (single-threaded)
+            start_mainloop_thread()
+            global dgmainloop_started
+            dgmainloop_started=True
+            pass
+
         NameBytes=Name.encode('utf-8')
         SONameBytes=SOName.encode('utf-8')
         ModParamsBytes=ModParams.encode('utf-8')
@@ -217,7 +304,11 @@ class DGModule(object,metaclass=pydg_Module):
         Action.SOName=<char *>SONameBytes
         Action.ParenParams=NULL
 
-        StartModule(&Action,"/usr/local/dataguzzler/modules")
+        dg_enter_main_context()
+        with nogil:
+            StartModule(&Action,"/usr/local/dataguzzler/modules")
+            pass
+        dg_leave_main_context()
         pass
 
     # Limited support of arbitrary attributes
@@ -238,7 +329,7 @@ class DGModule(object,metaclass=pydg_Module):
         #sys.stderr.flush()
 
          
-        (retcode,retval)=cmd("%s:%s?" % (self.Name,attrname))
+        (retcode,retval)=_rawcmd("%s:%s?" % (self.Name,attrname))
 
         #sys.stderr.write("called cmd...\n")
         #sys.stderr.flush()
@@ -252,7 +343,7 @@ class DGModule(object,metaclass=pydg_Module):
             attr=object.__getattribute__(self,attrname)
             return object.__setattr__(self,attrname,attrvalue)
         except AttributeError:
-            (retcode,retval)=cmd("%s:%s %s" % (self.Name,attrname,str(attrvalue)))
+            (retcode,retval)=_rawcmd("%s:%s %s" % (self.Name,attrname,str(attrvalue)))
         
             if retcode > 299:
                 raise DataguzzlerError(retval)
@@ -261,10 +352,12 @@ class DGModule(object,metaclass=pydg_Module):
         return retval
 
     def cmd(self,cmdstr):
-        (retcode,retval)=cmd("%s:%s" % (self.Name,cmdstr))
+        (retcode,retval)=_rawcmd("%s:%s" % (self.Name,cmdstr))
         
         if retcode > 299:
             raise DataguzzlerError(retval)
         return retval
     
     pass
+
+

@@ -4,6 +4,16 @@ import numpy as np
 import copy
 import os
 import sys
+import abc
+
+try:
+    import limatix
+    import limatix.dc_value
+    import limatix.lm_units
+    pass
+except ImportError:
+    sys.stderr.write("pydg: limatix not available; dc_value units will not be supported\n")
+    pass
 
 junk=5
 method_wrapper_type=junk.__str__.__class__
@@ -309,6 +319,9 @@ def censorobj(sourcecontext,destcontext,attrname,obj):
     if sourcecontext is destcontext:
         return obj # nothing to do!
     
+    if isinstance(obj,bool):
+        return bool(obj)
+
     if isinstance(obj,int):
         return int(obj)
 
@@ -318,8 +331,6 @@ def censorobj(sourcecontext,destcontext,attrname,obj):
     if isinstance(obj,str):
         return str(obj)
 
-    if isinstance(obj,bool):
-        return bool(obj)
 
     if type(obj) is Module:
         return obj  # Don't need to wrap module metaclass (below)
@@ -356,6 +367,14 @@ def censorobj(sourcecontext,destcontext,attrname,obj):
         
         arraycopy.flags.writable=False # Make immutable
         return arraycopy
+    
+    # if obj is an instance of our pydg.threadsafe abstract base class,
+    # then it should be OK
+    #sys.stderr.write("type(obj)=%s\n" % (str(type(obj))))
+    if isinstance(obj,threadsafe):
+        return obj
+
+
         
     # BUG: Wrappers may not be properly identified via method_attr_types, get wrapped as objects (?)
     # BUG: wrapped wrappers aren't getting properly identified, get rewrapped (don't need to be)
@@ -507,3 +526,10 @@ class Module(type):
     pass
 
         
+# Abstract base class for objects which are threadsafe
+# and can therefore be freely passed between contexts
+class threadsafe(object,metaclass=abc.ABCMeta):
+    pass
+# Use pydg.threadsafe.register(my_class)  to register your new class
+
+threadsafe.register(limatix.dc_value.value)
