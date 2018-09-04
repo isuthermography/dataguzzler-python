@@ -1,6 +1,10 @@
 import sys
 import os
 import importlib
+import atexit
+# Enable readline editing/history/completion, as in 'python -i' interactive mode
+import readline
+import rlcompleter
 
 from ..mainloop import start_tcp_server
 from ..mainloop import PyDGConn,OldDGConn
@@ -18,11 +22,37 @@ def main(args=None):
         args=sys.argv
         pass
     
-
     global pydg_config  #  reminder
     if sys.version_info < (3,6,0):
         raise ValueError("Insufficient Python version: Requires Python 3.6 or above")
     
+    # register readline history file and completer
+    readline_doc = getattr(readline, '__doc__', '')
+    if readline_doc is not None and 'libedit' in readline_doc:
+        readline.parse_and_bind('bind ^I rl_complete')
+    else:
+        readline.parse_and_bind('tab: complete')
+        pass
+
+    try: 
+        readline.read_init_file()
+        pass
+    except OSError:
+        # probably no .inputrc file present
+        pass
+
+    if readline.get_current_history_length()==0:
+        history = os.path.join(os.path.expanduser('~'),'.dataguzzler_python_history')
+        try:
+            readline.read_history_file(history)
+            pass
+        except OSError:
+            pass
+
+        # Schedule to write out a history file on exit
+        atexit.register(readline.write_history_file,history)
+        pass
+
 
     ConfigContext=SimpleContext()
     
@@ -52,11 +82,19 @@ def main(args=None):
 
     globaldecls=[]
     localdict={}
+
+    readline.set_completer(rlcompleter.Completer(pydg_config.__dict__).complete)
     
     while(True):
         InStr=input("pydg> ")
-        (rc,ret)=process_line(globaldecls,localdict,InStr)
-        write_response(sys.stdout.buffer,rc,repr(ret).encode('utf-8'))
+        (rc,ret,bt)=process_line(globaldecls,localdict,InStr)
+        if bt is None:
+            write_response(sys.stdout.buffer,rc,repr(ret).encode('utf-8'))
+            pass
+        else:
+            write_response(sys.stdout.buffer,rc,repr((ret,bt)).encode('utf-8'))
+            pass
+
         pass
     
     

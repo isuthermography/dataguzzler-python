@@ -2,6 +2,7 @@
 import sys
 import ast
 import socket
+import traceback
 import importlib
 from threading import Thread,Lock
 import asyncio
@@ -71,7 +72,7 @@ def process_line(globaldecls,localdict,linestr):
         lineast=ast.parse(linestr)
 
         if len(lineast.body) < 1:
-            return (200,None)
+            return (200,None,None)
         
         if len(lineast.body)==1 and lineast.body[0].__class__.__name__=="Global":
             # Defining a variable as global
@@ -102,13 +103,15 @@ def process_line(globaldecls,localdict,linestr):
         #sys.stderr.flush()
 
         ret=localdict["__pydg_result"]
-        
+        bt=None
+
         pass
     except Exception as e:
         ret=e
         returncode=500
+        bt=traceback.format_exc()
         pass
-    return (returncode,ret)
+    return (returncode,ret,bt)
 
 class PyDGConn(object):
     clientsocket=None
@@ -142,9 +145,14 @@ class PyDGConn(object):
         while not empty:
             line = yield from reader.readline()
 
-            (returncode,ret)=process_line(globaldecls,localdict,line.decode('utf-8'))
+            (returncode,ret,bt)=process_line(globaldecls,localdict,line.decode('utf-8'))
+            if bt is None:
+                write_response(writer,returncode,repr(ret).encode('utf-8'))
+                pass
+            else:
+                write_response(writer,returncode,repr((ret,bt)).encode('utf-8'))
+                pass
 
-            write_response(writer,returncode,repr(ret).encode('utf-8'))
             pass
         writer.close()
         self.loop.stop()
@@ -277,6 +285,7 @@ class OldDGConn(object):
 def tcp_server(hostname,port,connbuilder=lambda **kwargs: PyDGConn(**kwargs)):
     global nextconnid,nextconnidlock,Conns
     serversocket=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+    serversocket.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
 
     serversocket.bind((hostname,port))
     serversocket.listen(5)

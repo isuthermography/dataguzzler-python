@@ -44,6 +44,8 @@
 #include "main.h"
 #include "rpc.h"
 
+#include "dgold_locking_c.h"
+
 struct RPC_Asynchronous { /* RPC asynchronous ConnCloseNotify */
 
 };
@@ -60,6 +62,7 @@ void rpc_asynchronous_abort(struct RPC_Asynchronous *RPCA)
 }
 
 
+
 /* do a call asynchronously using a (possibly) persistent dummy connection, so that we can reuse the dummy connection and inhibit routines that 
    check for connections dying from thinking the connection has died until we're finally done */
 /* persistency in enabled by PersistentFlag */
@@ -69,6 +72,8 @@ void rpc_asynchronous_abort(struct RPC_Asynchronous *RPCA)
 /* This uses and may ultimately (once the call back is done) clear the DummyConn's EmptyNotify and EmptyNotifyParam */
 /* Use CreateDummyConn() to build DummyConn. You will also need to use CreateConnBuf() to create DummyConn->InStream and
    add DummyConn to the master ConnList */
+/* ***!!! MUST BE CALLED WHILE HOLDING THE MAIN CONTEXT LOCK... 
+   i.e. inside a dg_enter_main_context_c() block */
 struct RPC_Asynchronous *rpc_asynchronous_str_persistent(struct Module *Mod,struct Conn *Conn,int ImmediateOK,struct Conn *DummyConn,int PersistentFlag,void *Param,void (*Continuation)(int retval,unsigned char *res,struct Module *Mod,struct Conn *Conn,void *Param),void (*ConnDestructor)(struct Module *Mod,struct Conn *Conn,void *Param),unsigned char *str)
 {
   int retval;
@@ -121,13 +126,14 @@ struct RPC_Asynchronous *rpc_asynchronous_str_persistent(struct Module *Mod,stru
 
 	WakeupFd=DummyConn->WakeupFd;
 	
-	/* Release the GIL so that other stuff can happen */
-	Py_BEGIN_ALLOW_THREADS;
-	
+	/* Release the main context so that other stuff can happen */
+	dg_leave_main_context_c();
+
 	poll(&WakeupFd,(WakeupFd.fd < 0) ? 0:1,timeout.tv_sec*1000+timeout.tv_nsec/1000000);
 
-	/* reacquire GIL */
-	Py_END_ALLOW_THREADS;
+	/* reacquire main context */
+	dg_enter_main_context_c();
+
 	
 	DummyConn->WakeupFd.revents=WakeupFd.revents;
 	
