@@ -5,6 +5,10 @@ import copy
 import os
 import sys
 
+import pint # units library
+
+u = pint.UnitRegistry()  # shared registry
+
 junk=5
 method_wrapper_type=junk.__str__.__class__
 
@@ -370,7 +374,27 @@ def censorobj(sourcecontext,destcontext,attrname,obj):
             #return RunInContext(sourcecontext,obj,"!!!!!",args,kwargs)
         
         return wrapper
-    
+
+    # If a non-method data descriptor:
+    if hasattr(obj,"__get__") and hasattr(obj,"__set__") and not hasattr(obj,"__call__"):
+        # return wrapped copy
+        oldget = obj.__get__
+        oldset = obj.__set__
+        doc="Undocumented"
+        if hasattr(obj,"__doc__"):
+            doc=obj.__doc__
+            pass
+        
+        class descriptor_wrapper(object):
+            def __init__(self,doc):
+                self.__doc__=doc
+                pass
+            def __get__(self,obj,type=None):
+                return RunInContext(sourcecontext,oldget,oldget.__name__,(obj,),{"type": type})
+            def __set__(self,obj,value):
+                return RunInContext(sourcecontext,oldget,oldget.__name__,(obj,value),{})
+            pass
+        return DescriptorWrapper(doc)
     
     if isinstance(obj,tuple):
         return tuple([ censorobj(sourcecontext,destcontext,"attrname[%d]" % (subobjcnt),obj[subobjcnt]) for subobjcnt in range(len(obj)) ])
@@ -419,12 +443,15 @@ class Module(type):
         # Define __getattribute__ method for the pydg module class
         # Getattribute wraps all attribute accesses (except magic method accesses)
         # to return wrapped objects, including methods that shift context
+        orig_getattribute=getattr(cls,"__getattribute__")
 
+        
         def __getattribute__(self,attrname):
             curcontext=CurContext()
             
             try:
-                attr=object.__getattribute__(self,attrname)
+                #attr=object.__getattribute__(self,attrname)
+                attr=orig_getattribute(self,attrname)
                 pass
             except AttributeError:
                 # attribute doesn't exist... do we have a __getattr__ method?

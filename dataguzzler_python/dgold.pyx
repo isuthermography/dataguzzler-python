@@ -7,81 +7,13 @@ from cpython.ref cimport PyObject
 
 cimport libc.time
 cimport posix.time
+from libc.string cimport strdup
+from dataguzzler.linklist cimport dgl_List, dgl_NewList
 
-ctypedef void (*ContinuationFunction)(int retval,unsigned char *res,Module *Mod,Conn *Conn,void *Param)
-ctypedef void (*ConnDestructor)(Module Mod, Conn C, void *Param)
+from .dg_internal cimport Conn,ConnBuf,CreateDummyConn,CreateConnBuf,DeleteConn,AtExitFunc,dg_StringBuf,dgsb_CreateStringBuf,dgsb_StringBufAppend,InitAction,IAT_LIBRARY,IAT_MODULE,Module,StartModule,StartLibrary,rpc_asynchronous_str_persistent
 
-cdef extern from "sys/poll.h":
-     pass
 
      
-
-cdef extern from "dg_linklist.h":
-     cdef struct dgl_List:
-         pass
-     void dgl_NewList(dgl_List *)
-     pass
-     
-
-cdef extern from "conn.h":
-    cdef struct Conn:
-        ConnBuf *InStream
-        int Auth
-        pass
-    cdef struct ConnBuf:
-        pass
-
-    Conn *CreateDummyConn()
-    ConnBuf *CreateConnBuf(size_t initialsize)
-    void DeleteConn(Conn *)    
-    pass
-
-cdef extern from "util.h":
-     pass
-
-cdef extern from "main.h":
-     struct AtExitFunc:
-         pass
-     pass
-#ctypedef void (*AtExitFuncCallback)(AtExitFunc *, void *Param)
-
-cdef extern from "dg_stringbuf.h":
-     struct dg_StringBuf:
-         pass
-     dg_StringBuf *dgsb_CreateStringBuf(int initialsize) 
-     void dgsb_StringBufAppend(dg_StringBuf *c,char *str)
-     pass
- 
-cdef extern from "init.h":
-     struct InitAction:
-         int Type
-         char *Name
-         dg_StringBuf *Params
-         char *SOName
-         dgl_List *ParenParams
-         pass
-     int IAT_LIBRARY
-     int IAT_MODULE
-     pass
- 
-cdef extern from "mod.h":
-    cdef struct Module:
-        pass
-    void StartModule(InitAction *Init,char *dg_bindir);
-    pass
-
-cdef extern from "library.h":
-    void StartLibrary(InitAction *Init,char *dg_bindir)
-    pass
-
-
-
-cdef extern from "rpc.h":
-    cdef struct RPC_Asynchronous:
-        pass
-
-    RPC_Asynchronous *rpc_asynchronous_str_persistent(Module *Mod,Conn *Conn,int ImmediateOK,Conn *DummyConn,int PersistentFlag,void *Param,ContinuationFunction Continuation,ConnDestructor CD,unsigned char *str)
-    pass
 
 
 cdef public char *SetQueryPrefix
@@ -95,13 +27,12 @@ cdef public dgl_List InitActionList
 cdef public dgl_List ConnList
 cdef public dgl_List ModuleList
 
-
 SetQueryPrefix=NULL
 SetQueryPostfix=NULL
 dg_PosixClock=posix.time.CLOCK_REALTIME
 DefaultModule=NULL
 commandname_py=sys.argv[0].encode('utf-8')
-commandname=<char *>commandname_py
+commandname=<char *>strdup(commandname_py)
 
 
 dgl_NewList(&InitActionList)

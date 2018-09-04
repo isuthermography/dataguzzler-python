@@ -32,5 +32,5 @@ setup(name="dataguzzler_python",
             url="http://thermal.cnde.iastate.edu",
             ext_modules=ext_modules,
             packages=["dataguzzler_python","dataguzzler_python.bin"],
-            package_data={ "dataguzzler_python": []},
+            package_data={ "dataguzzler_python": [ "__init__.pxd", "wfmstore.pxd","dg_internal.pxd" ]},
             entry_points={"console_scripts": console_scripts_entrypoints })
