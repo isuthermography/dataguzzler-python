@@ -80,11 +80,11 @@ def InitThreadContext(context,name):
 
 def PushThreadContext(context):  # Always pair with a PopThreadContext in a finally clause
     if len(ThreadContext.execution) > 0:
-        ThreadContext.execution[0]._pydg_contextlock.release()
+        object.__getattribute__(ThreadContext.execution[0],"_pydg_contextlock").release()
         pass
 
     if context is not None:
-        context._pydg_contextlock.acquire()
+        object.__getattribute__(context,"_pydg_contextlock").acquire()
         pass
     ThreadContext.execution.insert(0,context)
     pass
@@ -92,12 +92,13 @@ def PushThreadContext(context):  # Always pair with a PopThreadContext in a fina
 def PopThreadContext():
     context=ThreadContext.execution.pop(0)
     if context is not None:
-        context._pydg_contextlock.release()
+        object.__getattribute__(context,"_pydg_contextlock").release()
         pass
     
     if len(ThreadContext.execution) > 0:
-        ThreadContext.execution[0]._pydg_contextlock.acquire()
-
+        object.__getattribute__(ThreadContext.execution[0],"_pydg_contextlock").acquire()
+        pass
+    
     return context
 
 def CurContext():
@@ -454,6 +455,8 @@ class Module(type):
         def __new__(cls,*args,**kwargs):
             newobj=object.__new__(cls)
             InitContext(newobj,args[0]) # add _pydg_contextlock member
+            #import pdb
+            #pdb.set_trace()
             PushThreadContext(newobj) # Set context... released in__call__ below
             return newobj
         setattr(cls,"__new__",__new__)

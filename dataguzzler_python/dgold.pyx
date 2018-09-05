@@ -15,9 +15,8 @@ from dataguzzler.linklist cimport dgl_List, dgl_NewList
 
 from .dg_internal cimport Conn,ConnBuf,CreateDummyConn,CreateConnBuf,DeleteConn,AtExitFunc,dg_StringBuf,dgsb_CreateStringBuf,dgsb_StringBufAppend,InitAction,IAT_LIBRARY,IAT_MODULE,Module,StartModule,StartLibrary,rpc_asynchronous_str_persistent
 
-
-cdef extern from "dg_units.h":
-     pass
+#cdef extern from "dg_units.h":
+#     pass
      
 
 
@@ -25,13 +24,8 @@ cdef extern from "dgold_module_c.h":
     void ModWakeupLoop() nogil
     pass
 
-cdef extern from "dgold_locking_c.h":
-    void dg_enter_main_context_c() nogil
-    void dg_leave_main_context_c() nogil
-    void dg_enter_main_context() 
-    void dg_leave_main_context() 
-    void dg_main_context_init() nogil
-    pass
+cimport dgold
+
 
 
 
@@ -61,7 +55,7 @@ dgl_NewList(&ModuleList)
 dgmainloop_started=False
 
 with nogil: 
-     dg_main_context_init()
+     dgold.dg_main_context_init()
      pass
 
 
@@ -91,11 +85,11 @@ cdef void dgold_rpc_continuation_core(int retval, unsigned char *res, Module *Mo
 
 cdef void dgold_rpc_continuation(int retval, unsigned char *res, Module *Mod, Conn *conn,void *param) nogil:
 
-    dg_leave_main_context_c()    
+    dgold.dg_leave_main_context_c()    
     with gil:
         dgold_rpc_continuation_core(retval,res,Mod,conn,param)
         pass
-    dg_enter_main_context_c()
+    dgold.dg_enter_main_context_c()
     pass
 
 # FIXME: Should use AddAtExitFunc to enable cleanups of stuff in /dev/shm
@@ -139,9 +133,9 @@ def rpc_async(context,bytes cmdbytes):
     retlistptr=<void*>retlistobj
     cmdbytesptr=cmdbytes
     with nogil:
-        dg_enter_main_context_c()
+        dgold.dg_enter_main_context_c()
         rpc_asynchronous_str_persistent(NULL,NULL,1,dummyconn,1,retlistptr,dgold_rpc_continuation,NULL,cmdbytesptr)
-        dg_leave_main_context_c()
+        dgold.dg_leave_main_context_c()
         pass
 
     retval=retlist[0]
@@ -196,11 +190,11 @@ def library(SOName,initparams=""):
     Action.SOName=<char *>SONameBytes
     Action.ParenParams=NULL
 
-    dg_enter_main_context()
+    dgold.dg_enter_main_context()
     with nogil:
         StartLibrary(&Action,"/usr/local/dataguzzler/libraries")
         pass
-    dg_leave_main_context()
+    dgold.dg_leave_main_context()
 
     pass
 
@@ -234,11 +228,11 @@ class DGModule(object,metaclass=pydg_Module):
         Action.SOName=<char *>SONameBytes
         Action.ParenParams=NULL
 
-        dg_enter_main_context()
+        dgold.dg_enter_main_context()
         with nogil:
             StartModule(&Action,"/usr/local/dataguzzler/modules")
             pass
-        dg_leave_main_context()
+        dgold.dg_leave_main_context()
         pass
 
     # Limited support of arbitrary attributes

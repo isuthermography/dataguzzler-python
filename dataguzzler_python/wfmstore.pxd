@@ -2,7 +2,11 @@ from dataguzzler cimport linklist as dgl
 cimport dataguzzler as dg
 from .dg_internal cimport Module
 
-cdef extern from "dg_internal/wfmstore.h":
+# ***!!! NOTE: These functions my not require the GIL
+# but they must be wrapped with
+# dg_enter_main_context()/dg_leave_main_context() if you hold the GIL
+# or dg_enter_main_context_c()/dg_leave_main_context_c() if you don't
+cdef extern from "dg_internal/wfmstore.h" nogil:
     cdef struct Wfm:
         dg.dg_wfminfo Info
         unsigned long long globalrev
@@ -69,7 +73,7 @@ cdef extern from "dg_internal/wfmstore.h":
     
     # if the channel of the specified name is owned by the specifed module,
     # return the channel, otherwise NULL 
-    Channel *ChanIsMine(char *ChanName,Module *Mod)
+    Channel *ChanIsMine(char *ChanName,char *ModName)
     
     void CreateWfmFromPtr(Channel *Chan,Wfm *Wfm, void (*Destructor)(Wfm *Wfm)) #  CreateWfm where Wfm structure is preallocated 
     

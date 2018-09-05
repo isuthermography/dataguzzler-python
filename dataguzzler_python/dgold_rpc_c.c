@@ -38,11 +38,11 @@
 #include <time.h>
 #include <Python.h>
 #include "dg_linklist.h"
-#include "util.h"
-#include "conn.h"
-#include "mod.h"
-#include "main.h"
-#include "rpc.h"
+#include "dg_internal/util.h"
+#include "dg_internal/conn.h"
+#include "dg_internal/mod.h"
+#include "dg_internal/main.h"
+#include "dg_internal/rpc.h"
 
 #include "dgold_locking_c.h"
 
