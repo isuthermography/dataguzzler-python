@@ -248,8 +248,8 @@ class DGModule(object,metaclass=dgpy_Module):
             return attr
         except AttributeError:
             pass
-
-       if attrname.startswith("__"):
+     
+        if attrname.startswith("__"):
             raise AttributeError(attrname)
        
        

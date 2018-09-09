@@ -4,10 +4,14 @@ import numpy as np
 
 from limatix.dc_value import numericunitsvalue as nuv
 
+
 # Temporary hack until all needed symbols are in a separate dll...
 sys.setdlopenflags(os.RTLD_GLOBAL|os.RTLD_NOW)
 
 from dataguzzler_python import pydg
+from dataguzzler_python.dgpy import check_dgpython
+
+check_dgpython()
 
 from dataguzzler_python import dgold
 from dataguzzler_python.dgold import cmd as dgcmd

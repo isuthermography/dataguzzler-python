@@ -32,6 +32,9 @@ builtin_function_or_method_type = os.system.__class__ # os.system should consist
 method_attr_types=[ types.MethodType, method_wrapper_type, builtin_function_or_method_type ]
 
 
+dgpy_running=False # Flag set by bin/dataguzzler_python.py that indicates 
+# we are running under dg_python
+
 # set of names of Python magic methods
 # magicnames omits __new__, __init__, __getattribute__,  
 # otherwise this list is based on http://www.rafekettler.com/magicmethods.html    
@@ -80,6 +83,11 @@ def InitContext(context,name):
 def InitThreadContext(context,name):
     InitThread()
     InitContext(context,name)
+    pass
+
+def check_dgpython():
+    if not dgpy_running:
+        raise ImportError("This dataguzzler-python configuration file is meant to be run via the dataguzzler-python script")
     pass
 
 

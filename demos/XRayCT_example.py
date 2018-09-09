@@ -5,6 +5,10 @@ import numpy as np
 from limatix.dc_value import numericunitsvalue as nuv
 
 from dataguzzler_python import pydg
+from dataguzzler_python.dgpy import check_dgpython
+
+check_dgpython()
+
 
 from dataguzzler_python import dgold
 from dataguzzler_python.dgold import cmd as dgcmd

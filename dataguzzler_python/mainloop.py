@@ -55,6 +55,15 @@ def start_response(writer,returncode,length):
     writer.write(("%3.3d %12.12d " % (returncode,length+2)).encode('utf-8')) # length+2 accounts for trailing
     pass
     
+def render_response(rc,ret,bt):
+    if bt is None:
+        if isinstance(ret,str) and not "\"\"\"" in ret:
+            return ("\"\"\""+ret+"\"\"\"").encode('utf-8')
+        return repr(ret).encode('utf-8')
+    else:
+        return repr((ret,bt)).encode('utf-8')
+    pass
+
 def write_response(writer,returncode,retbytes):
     start_response(writer,returncode,len(retbytes))
     writer.write(retbytes)
@@ -158,13 +167,7 @@ class PyDGConn(object):
             line = yield from reader.readline()
 
             (returncode,ret,bt)=process_line(globaldecls,localdict,line.decode('utf-8'))
-            if bt is None:
-                write_response(writer,returncode,repr(ret).encode('utf-8'))
-                pass
-            else:
-                write_response(writer,returncode,repr((ret,bt)).encode('utf-8'))
-                pass
-
+            write_response(writer,returncode,render_response(returncode,ret,bt))
             pass
         writer.close()
         self.loop.stop()
