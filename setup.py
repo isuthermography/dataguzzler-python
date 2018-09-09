@@ -23,9 +23,9 @@ savewfm_ext=Extension("dataguzzler_python.savewfm",
                          extra_link_args=["-g","-shared-libgcc","-lrt","-lgcc","-lpthread","-Wl,-rpath,/usr/local/dataguzzler/lib/dg_internal","-Xlinker","--export-dynamic","-Wl,-rpath,/usr/local/dataguzzler-lib/lib"])
 
 ext_modules=[ dgold_ext,savewfm_ext ]
-console_scripts=["dataguzzler_python"]
+console_scripts=["dataguzzler-python"]
 
-console_scripts_entrypoints = [ "%s = dataguzzler_python.bin.%s:main" % (script,script) for script in console_scripts ]
+console_scripts_entrypoints = [ "%s = dataguzzler_python.bin.%s:main" % (script,script.replace("-",'_')) for script in console_scripts ]
 
 
 

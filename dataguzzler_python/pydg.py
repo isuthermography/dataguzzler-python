@@ -512,7 +512,8 @@ class Module(type):
             
             try:
                 #attr=object.__getattribute__(self,attrname)
-                attr=orig_getattribute(self,attrname)
+                #attr=orig_getattribute(self,attrname)
+                attr=RunInContext(self,orig_getattribute,"__getattribute__",(self,attrname),{})
                 pass
             except AttributeError:
                 # attribute doesn't exist... do we have a __getattr__ method?
@@ -549,7 +550,8 @@ class Module(type):
                 # always return the lock unwrapped
                 return attr
             
-            return censorobj(self,curcontext,attrname,attr)
+            #return censorobj(self,curcontext,attrname,attr)
+            return attr # RunInContext already censored result
         setattr(cls,"__getattribute__",__getattribute__)
 
 
