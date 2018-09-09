@@ -510,9 +510,13 @@ class Module(type):
         def __getattribute__(self,attrname):
             curcontext=CurContext()
             
+            if attrname=="__class__":
+                return object.__getattribute__(self,attrname)
+                
             try:
                 #attr=object.__getattribute__(self,attrname)
                 #attr=orig_getattribute(self,attrname)
+                
                 attr=RunInContext(self,orig_getattribute,"__getattribute__",(self,attrname),{})
                 pass
             except AttributeError:
