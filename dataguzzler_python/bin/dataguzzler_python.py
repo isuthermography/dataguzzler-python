@@ -17,6 +17,8 @@ from ..dgpy import PushThreadContext,PopThreadContext
 
 dgpy_config=None
 
+
+
 def main(args=None):
     if args is None:
         args=sys.argv
@@ -61,11 +63,19 @@ def main(args=None):
     
     configfile=args[1]
 
+    # Dictionary of local variables
+    # (global variables will be in dgpy_config.__dict__) 
+    localdict={}
+
     # define config file
     spec = importlib.util.spec_from_file_location("dgpy_config", configfile)
     # load config file
     dgpy_config = importlib.util.module_from_spec(spec)
     sys.modules["dgpy_config"]=dgpy_config
+
+    # add "who()" function
+    dgpy_config.__dict__["who"] = lambda : "\n" + "\n".join(dgpy_config.__dict__.keys() + localdict.keys())
+    
     # run config file 
     spec.loader.exec_module(dgpy_config)
 
@@ -81,7 +91,6 @@ def main(args=None):
     PushThreadContext(MainContext)
 
     globaldecls=[]
-    localdict={}
 
     readline.set_completer(rlcompleter.Completer(dgpy_config.__dict__).complete)
     

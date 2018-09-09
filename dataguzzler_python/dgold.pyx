@@ -249,6 +249,10 @@ class DGModule(object,metaclass=dgpy_Module):
         except AttributeError:
             pass
 
+       if attrname.startswith("__"):
+            raise AttributeError(attrname)
+       
+       
         #sys.stderr.write("__getattribute__ failed\n")
         #sys.stderr.flush()
 
