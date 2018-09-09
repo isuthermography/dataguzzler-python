@@ -1,19 +1,24 @@
 import threading
+import numbers
 import types
 import numpy as np
-import copy
 import os
 import sys
 import abc
+import collections
+import inspect
+import traceback
+import copy
+import pdb
 
-try:
-    import limatix
-    import limatix.dc_value
-    import limatix.lm_units
-    pass
-except ImportError:
-    sys.stderr.write("pydg: limatix not available; dc_value units will not be supported\n")
-    pass
+#try:
+#    import limatix
+#    import limatix.dc_value
+#    import limatix.lm_units
+#    pass
+#except ImportError:
+#    sys.stderr.write("pydg: limatix not available; dc_value units will not be supported\n")
+#    pass
 
 import pint # units library
 
@@ -312,6 +317,26 @@ r"""
     return result[0]
 """
 
+def wrapdescriptor(towrap):
+    oldget = towrap.__get__
+    oldset = towrap.__set__
+    doc="Undocumented"
+    if hasattr(towrap,"__doc__"):
+        doc=towrap.__doc__
+        pass
+        
+    class descriptor_wrapper(object):
+        def __init__(self,doc):
+            self.__doc__=doc
+            pass
+        def __get__(self,obj,type=None):
+            return RunInContext(obj,oldget,oldget.__name__,(obj,),{"type": type})
+        def __set__(self,obj,value):
+            return RunInContext(obj,oldset,oldset.__name__,(obj,value),{})
+        pass
+    return descriptor_wrapper(doc)
+
+
 def censorobj(sourcecontext,destcontext,attrname,obj):
     # Make sure obj is a base class type
     # Can be run from any thread that holds the lock on obj
@@ -327,11 +352,11 @@ def censorobj(sourcecontext,destcontext,attrname,obj):
     if isinstance(obj,bool):
         return bool(obj)
 
-    if isinstance(obj,int):
+    if isinstance(obj,numbers.Number):
         return int(obj)
 
-    if  isinstance(obj,float):
-        return float(obj)
+    #if  isinstance(obj,float):
+    #    return float(obj)
 
     if isinstance(obj,str):
         return str(obj)
@@ -353,7 +378,8 @@ def censorobj(sourcecontext,destcontext,attrname,obj):
     
     curcontext=CurContext()
     
-    if isinstance(obj,np.ndarray):
+    # array, or array or number with units
+    if isinstance(obj,np.ndarray) or isinstance(obj,pint.util.SharedRegistryObject): # pint.util.SharedRegistryObject is a base class of all pint numbers with units
         # Theoretically we should probably check the type of the array
         
         # Need to copy array in source context
@@ -369,16 +395,20 @@ def censorobj(sourcecontext,destcontext,attrname,obj):
         else:
             arraycopy=copy.deepcopy(obj) # return copy
             pass
-        
-        arraycopy.flags.writable=False # Make immutable
+
+        if isinstance(obj,np.ndarray):
+            arraycopy.flags.writable=False # Make immutable
+            pass
         return arraycopy
-    
+   
+ 
     # if obj is an instance of our pydg.threadsafe abstract base class,
     # then it should be OK
     #sys.stderr.write("type(obj)=%s\n" % (str(type(obj))))
     if isinstance(obj,threadsafe):
         return obj
 
+    
 
         
     # BUG: Wrappers may not be properly identified via method_attr_types, get wrapped as objects (?)
@@ -398,27 +428,28 @@ def censorobj(sourcecontext,destcontext,attrname,obj):
     # If a non-method data descriptor:
     if hasattr(obj,"__get__") and hasattr(obj,"__set__") and not hasattr(obj,"__call__"):
         # return wrapped copy
-        oldget = obj.__get__
-        oldset = obj.__set__
-        doc="Undocumented"
-        if hasattr(obj,"__doc__"):
-            doc=obj.__doc__
-            pass
-        
-        class descriptor_wrapper(object):
-            def __init__(self,doc):
-                self.__doc__=doc
-                pass
-            def __get__(self,obj,type=None):
-                return RunInContext(sourcecontext,oldget,oldget.__name__,(obj,),{"type": type})
-            def __set__(self,obj,value):
-                return RunInContext(sourcecontext,oldget,oldget.__name__,(obj,value),{})
-            pass
-        return DescriptorWrapper(doc)
+        return wrapdescriptor(obj)
     
+    # for a tuple, return a new tuple with the elements censored
     if isinstance(obj,tuple):
         return tuple([ censorobj(sourcecontext,destcontext,"attrname[%d]" % (subobjcnt),obj[subobjcnt]) for subobjcnt in range(len(obj)) ])
     
+    # for a list, return a new list with the elements censored
+    if isinstance(obj,list):
+        return [ censorobj(sourcecontext,destcontext,"attrname[%d]" % (subobjcnt),obj[subobjcnt]) for subobjcnt in range(len(obj)) ]
+
+    if isinstance(obj,collections.OrderedDict):
+        replacement=collections.OrderedDict()
+        for key in obj.keys():
+            replacement[key]=censorobj(sourcecontext,destcontext,"attrname[%s]" % (str(key)),obj[key])
+            pass
+        return replacement
+
+    if isinstance(obj,dict):
+        replacement = { key: censorobj(sourcecontext,destcontext,"attrname[%s]" % (str(key)),obj[key]) for key in obj.keys() }
+        return replacement
+
+
     # For other objects, this is an error
     #raise AttributeError("Attribute %s is only accessible from its module's thread context because it is not built from base or immutable types" % (attrname))
 
@@ -432,7 +463,15 @@ def censorobj(sourcecontext,destcontext,attrname,obj):
 
     return wrappedobj
 
-    
+def pm():
+    """ pdb debugger... like pdb.pm() """
+    frame=inspect.currentframe()
+    (etype,evalue,last_tb) = frame.f_back.f_locals["__pydg_last_exc_info"]
+    traceback.print_exception(etype,evalue,last_tb)
+    pdb.post_mortem(last_tb)
+    pass
+
+
 class Module(type):
     # Metaclass for pydg modules
     
@@ -524,8 +563,7 @@ class Module(type):
                 pass
             except AttributeError:
                 continue
-            #sys.stderr.write("Got magicmethod: %s %s\n" % (magicmethod,magicname))
-            #sys.stderr.flush()
+            
             wrapmagicmethod = lambda magicmethod,magicname: lambda *args,**kwargs: RunInContext(args[0],magicmethod,magicname,args,kwargs)
             wrappedmagicmethod=wrapmagicmethod(magicmethod,magicname)
             setattr(cls,magicname,wrappedmagicmethod)
@@ -562,4 +600,4 @@ class threadsafe(object,metaclass=abc.ABCMeta):
     pass
 # Use pydg.threadsafe.register(my_class)  to register your new class
 
-threadsafe.register(limatix.dc_value.value)
+#threadsafe.register(limatix.dc_value.value)

@@ -8,7 +8,7 @@ from threading import Thread,Lock
 import asyncio
 from asyncio import StreamReader,StreamReaderProtocol
 from asyncio.coroutines import coroutine
-
+import copy
 
 from .pydg import InitThreadContext
 from .pydg import PushThreadContext,PopThreadContext
@@ -88,12 +88,19 @@ def process_line(globaldecls,localdict,linestr):
         result_ast=lineast.body[-1]
         if result_ast.__class__.__name__=="Expr":
             # If we end with an expression, assign the expression
-            # replace last element with assignment of __pydg_result
-            lineast.body[-1] = ast.Assign(targets=[ast.Name(id="__pydg_result",ctx=ast.Store(),lineno=result_ast.lineno,col_offset=0)],value=result_ast.value,lineno=result_ast.lineno,col_offset=0)
+            # replace last element with assignment of __pydg_resulttemp
+            lineast.body[-1] = ast.Assign(targets=[ast.Name(id="__pydg_resulttemp",ctx=ast.Store(),lineno=result_ast.lineno,col_offset=0)],value=result_ast.value,lineno=result_ast.lineno,col_offset=0)
             
             pass
+        elif result_ast.__class__.__name__=="Assign":
+            # If we end with an assignment, add additional assignment
+            # to assign value of evaluated assignment to __pydg_resulttemp
+            targetval=copy.deepcopy(result_ast.targets[0])
+            targetval.ctx=ast.Load() 
+            lineast.body.append(ast.Assign(targets=[ast.Name(id="__pydg_resulttemp",ctx=ast.Store(),lineno=result_ast.lineno,col_offset=0)],value=targetval,lineno=result_ast.lineno,col_offset=0))
+            pass
         
-        localdict["__pydg_result"]=None
+        localdict["__pydg_resulttemp"]=None
 
         # !!! Should wrap pydgc_config.__dict__ to do context conversions (pydg.censor) !!!
         #sys.stderr.write("Exec!\n")
@@ -102,13 +109,18 @@ def process_line(globaldecls,localdict,linestr):
         #sys.stderr.write("Exec finished!\n")
         #sys.stderr.flush()
 
-        ret=localdict["__pydg_result"]
+        ret=localdict["__pydg_resulttemp"]
+        del localdict["__pydg_resulttemp"]
+
+        localdict["__pydg_result"]=ret # Leave copy for end-user
         bt=None
 
         pass
     except Exception as e:
         ret=e
         returncode=500
+        localdict["__pydg_last_exc_info"]=sys.exc_info()
+        # Leave copy for end-user
         bt=traceback.format_exc()
         pass
     return (returncode,ret,bt)
