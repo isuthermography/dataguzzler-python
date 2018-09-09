@@ -10,8 +10,8 @@ from asyncio import StreamReader,StreamReaderProtocol
 from asyncio.coroutines import coroutine
 import copy
 
-from .pydg import InitThreadContext
-from .pydg import PushThreadContext,PopThreadContext
+from .dgpy import InitThreadContext
+from .dgpy import PushThreadContext,PopThreadContext
 
 import ctypes
 
@@ -66,7 +66,7 @@ def process_line(globaldecls,localdict,linestr):
     empty= (linestr=="")
     returncode=200
     
-    import pydg_config
+    import dgpy_config
     
     try:
         lineast=ast.parse(linestr)
@@ -88,38 +88,38 @@ def process_line(globaldecls,localdict,linestr):
         result_ast=lineast.body[-1]
         if result_ast.__class__.__name__=="Expr":
             # If we end with an expression, assign the expression
-            # replace last element with assignment of __pydg_resulttemp
-            lineast.body[-1] = ast.Assign(targets=[ast.Name(id="__pydg_resulttemp",ctx=ast.Store(),lineno=result_ast.lineno,col_offset=0)],value=result_ast.value,lineno=result_ast.lineno,col_offset=0)
+            # replace last element with assignment of __dgpy_resulttemp
+            lineast.body[-1] = ast.Assign(targets=[ast.Name(id="__dgpy_resulttemp",ctx=ast.Store(),lineno=result_ast.lineno,col_offset=0)],value=result_ast.value,lineno=result_ast.lineno,col_offset=0)
             
             pass
         elif result_ast.__class__.__name__=="Assign":
             # If we end with an assignment, add additional assignment
-            # to assign value of evaluated assignment to __pydg_resulttemp
+            # to assign value of evaluated assignment to __dgpy_resulttemp
             targetval=copy.deepcopy(result_ast.targets[0])
             targetval.ctx=ast.Load() 
-            lineast.body.append(ast.Assign(targets=[ast.Name(id="__pydg_resulttemp",ctx=ast.Store(),lineno=result_ast.lineno,col_offset=0)],value=targetval,lineno=result_ast.lineno,col_offset=0))
+            lineast.body.append(ast.Assign(targets=[ast.Name(id="__dgpy_resulttemp",ctx=ast.Store(),lineno=result_ast.lineno,col_offset=0)],value=targetval,lineno=result_ast.lineno,col_offset=0))
             pass
         
-        localdict["__pydg_resulttemp"]=None
+        localdict["__dgpy_resulttemp"]=None
 
-        # !!! Should wrap pydgc_config.__dict__ to do context conversions (pydg.censor) !!!
+        # !!! Should wrap dgpyc_config.__dict__ to do context conversions (dgpy.censor) !!!
         #sys.stderr.write("Exec!\n")
         #sys.stderr.flush()
-        exec(compile(lineast,"<interactive>","exec"),pydg_config.__dict__,localdict)
+        exec(compile(lineast,"<interactive>","exec"),dgpy_config.__dict__,localdict)
         #sys.stderr.write("Exec finished!\n")
         #sys.stderr.flush()
 
-        ret=localdict["__pydg_resulttemp"]
-        del localdict["__pydg_resulttemp"]
+        ret=localdict["__dgpy_resulttemp"]
+        del localdict["__dgpy_resulttemp"]
 
-        localdict["__pydg_result"]=ret # Leave copy for end-user
+        localdict["__dgpy_result"]=ret # Leave copy for end-user
         bt=None
 
         pass
     except Exception as e:
         ret=e
         returncode=500
-        localdict["__pydg_last_exc_info"]=sys.exc_info()
+        localdict["__dgpy_last_exc_info"]=sys.exc_info()
         # Leave copy for end-user
         bt=traceback.format_exc()
         pass
@@ -131,7 +131,7 @@ class PyDGConn(object):
     connid=None
     loop=None
     thread=None
-    _pydg_contextlock=None
+    _dgpy_contextlock=None
 
     def __init__(self,**kwargs):
         for arg in kwargs:
@@ -209,8 +209,8 @@ class OldDGConn(object):
     connid=None
     loop=None
     thread=None
-    _pydg_contextlock=None
-    _pydg_contextname=None
+    _dgpy_contextlock=None
+    _dgpy_contextname=None
 
     def __init__(self,**kwargs):
         for arg in kwargs:

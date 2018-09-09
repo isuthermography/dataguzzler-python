@@ -1213,12 +1213,12 @@ static const char __pyx_k_sys[] = "sys";
 static const char __pyx_k_Chan[] = "Chan";
 static const char __pyx_k_Lock[] = "Lock";
 static const char __pyx_k_Name[] = "Name";
+static const char __pyx_k_dgpy[] = "dgpy";
 static const char __pyx_k_init[] = "__init__";
 static const char __pyx_k_join[] = "join";
 static const char __pyx_k_main[] = "__main__";
 static const char __pyx_k_name[] = "name";
 static const char __pyx_k_path[] = "path";
-static const char __pyx_k_pydg[] = "pydg";
 static const char __pyx_k_self[] = "self";
 static const char __pyx_k_test[] = "__test__";
 static const char __pyx_k_time[] = "time";
@@ -1250,7 +1250,7 @@ static const char __pyx_k_waveforms[] = "waveforms";
 static const char __pyx_k_CurContext[] = "CurContext";
 static const char __pyx_k_Modname_tr[] = "Modname_tr";
 static const char __pyx_k_Modname_ptr[] = "Modname_ptr";
-static const char __pyx_k_pydg_Module[] = "pydg_Module";
+static const char __pyx_k_dgpy_Module[] = "dgpy_Module";
 static const char __pyx_k_Filename_ptr[] = "Filename_ptr";
 static const char __pyx_k_waveformname[] = "waveformname";
 static const char __pyx_k_Modname_bytes[] = "Modname_bytes";
@@ -1284,6 +1284,8 @@ static PyObject *__pyx_n_s_cline_in_traceback;
 static PyObject *__pyx_n_s_dataguzzler_python_savewfm;
 static PyObject *__pyx_kp_s_dataguzzler_python_savewfm_pyx;
 static PyObject *__pyx_n_s_deletewfm;
+static PyObject *__pyx_n_s_dgpy;
+static PyObject *__pyx_n_s_dgpy_Module;
 static PyObject *__pyx_n_s_doc;
 static PyObject *__pyx_n_s_encode;
 static PyObject *__pyx_n_s_errmsg;
@@ -1301,8 +1303,6 @@ static PyObject *__pyx_n_s_object;
 static PyObject *__pyx_n_s_os;
 static PyObject *__pyx_n_s_path;
 static PyObject *__pyx_n_s_prepare;
-static PyObject *__pyx_n_s_pydg;
-static PyObject *__pyx_n_s_pydg_Module;
 static PyObject *__pyx_n_s_qualname;
 static PyObject *__pyx_n_s_savewfm;
 static PyObject *__pyx_n_s_savewfm___init;
@@ -2530,6 +2530,8 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_dataguzzler_python_savewfm, __pyx_k_dataguzzler_python_savewfm, sizeof(__pyx_k_dataguzzler_python_savewfm), 0, 0, 1, 1},
   {&__pyx_kp_s_dataguzzler_python_savewfm_pyx, __pyx_k_dataguzzler_python_savewfm_pyx, sizeof(__pyx_k_dataguzzler_python_savewfm_pyx), 0, 0, 1, 0},
   {&__pyx_n_s_deletewfm, __pyx_k_deletewfm, sizeof(__pyx_k_deletewfm), 0, 0, 1, 1},
+  {&__pyx_n_s_dgpy, __pyx_k_dgpy, sizeof(__pyx_k_dgpy), 0, 0, 1, 1},
+  {&__pyx_n_s_dgpy_Module, __pyx_k_dgpy_Module, sizeof(__pyx_k_dgpy_Module), 0, 0, 1, 1},
   {&__pyx_n_s_doc, __pyx_k_doc, sizeof(__pyx_k_doc), 0, 0, 1, 1},
   {&__pyx_n_s_encode, __pyx_k_encode, sizeof(__pyx_k_encode), 0, 0, 1, 1},
   {&__pyx_n_s_errmsg, __pyx_k_errmsg, sizeof(__pyx_k_errmsg), 0, 0, 1, 1},
@@ -2547,8 +2549,6 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_os, __pyx_k_os, sizeof(__pyx_k_os), 0, 0, 1, 1},
   {&__pyx_n_s_path, __pyx_k_path, sizeof(__pyx_k_path), 0, 0, 1, 1},
   {&__pyx_n_s_prepare, __pyx_k_prepare, sizeof(__pyx_k_prepare), 0, 0, 1, 1},
-  {&__pyx_n_s_pydg, __pyx_k_pydg, sizeof(__pyx_k_pydg), 0, 0, 1, 1},
-  {&__pyx_n_s_pydg_Module, __pyx_k_pydg_Module, sizeof(__pyx_k_pydg_Module), 0, 0, 1, 1},
   {&__pyx_n_s_qualname, __pyx_k_qualname, sizeof(__pyx_k_qualname), 0, 0, 1, 1},
   {&__pyx_n_s_savewfm, __pyx_k_savewfm, sizeof(__pyx_k_savewfm), 0, 0, 1, 1},
   {&__pyx_n_s_savewfm___init, __pyx_k_savewfm___init, sizeof(__pyx_k_savewfm___init), 0, 0, 1, 1},
@@ -2650,7 +2650,7 @@ static int __Pyx_InitCachedConstants(void) {
   /* "dataguzzler_python/savewfm.pyx":39
  * 
  * 
- * class savewfm(object,metaclass=pydg_Module):             # <<<<<<<<<<<<<<
+ * class savewfm(object,metaclass=dgpy_Module):             # <<<<<<<<<<<<<<
  *     Name=None
  * 
  */
@@ -2983,7 +2983,7 @@ if (!__Pyx_RefNanny) {
  * import sys
  * import os             # <<<<<<<<<<<<<<
  * import time
- * from .pydg import Module as pydg_Module
+ * from .dgpy import Module as dgpy_Module
  */
   __pyx_t_1 = __Pyx_Import(__pyx_n_s_os, 0, -1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 2, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
@@ -2994,8 +2994,8 @@ if (!__Pyx_RefNanny) {
  * import sys
  * import os
  * import time             # <<<<<<<<<<<<<<
- * from .pydg import Module as pydg_Module
- * from .pydg import CurContext
+ * from .dgpy import Module as dgpy_Module
+ * from .dgpy import CurContext
  */
   __pyx_t_1 = __Pyx_Import(__pyx_n_s_time, 0, -1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 3, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
@@ -3005,8 +3005,8 @@ if (!__Pyx_RefNanny) {
   /* "dataguzzler_python/savewfm.pyx":4
  * import os
  * import time
- * from .pydg import Module as pydg_Module             # <<<<<<<<<<<<<<
- * from .pydg import CurContext
+ * from .dgpy import Module as dgpy_Module             # <<<<<<<<<<<<<<
+ * from .dgpy import CurContext
  * 
  */
   __pyx_t_1 = PyList_New(1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 4, __pyx_L1_error)
@@ -3014,19 +3014,19 @@ if (!__Pyx_RefNanny) {
   __Pyx_INCREF(__pyx_n_s_Module);
   __Pyx_GIVEREF(__pyx_n_s_Module);
   PyList_SET_ITEM(__pyx_t_1, 0, __pyx_n_s_Module);
-  __pyx_t_2 = __Pyx_Import(__pyx_n_s_pydg, __pyx_t_1, 1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 4, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_Import(__pyx_n_s_dgpy, __pyx_t_1, 1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 4, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __pyx_t_1 = __Pyx_ImportFrom(__pyx_t_2, __pyx_n_s_Module); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 4, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_pydg_Module, __pyx_t_1) < 0) __PYX_ERR(0, 4, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_dgpy_Module, __pyx_t_1) < 0) __PYX_ERR(0, 4, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
   /* "dataguzzler_python/savewfm.pyx":5
  * import time
- * from .pydg import Module as pydg_Module
- * from .pydg import CurContext             # <<<<<<<<<<<<<<
+ * from .dgpy import Module as dgpy_Module
+ * from .dgpy import CurContext             # <<<<<<<<<<<<<<
  * 
  * from threading import Thread,Lock
  */
@@ -3035,7 +3035,7 @@ if (!__Pyx_RefNanny) {
   __Pyx_INCREF(__pyx_n_s_CurContext);
   __Pyx_GIVEREF(__pyx_n_s_CurContext);
   PyList_SET_ITEM(__pyx_t_2, 0, __pyx_n_s_CurContext);
-  __pyx_t_1 = __Pyx_Import(__pyx_n_s_pydg, __pyx_t_2, 1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 5, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_Import(__pyx_n_s_dgpy, __pyx_t_2, 1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 5, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __pyx_t_2 = __Pyx_ImportFrom(__pyx_t_1, __pyx_n_s_CurContext); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 5, __pyx_L1_error)
@@ -3045,7 +3045,7 @@ if (!__Pyx_RefNanny) {
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
   /* "dataguzzler_python/savewfm.pyx":7
- * from .pydg import CurContext
+ * from .dgpy import CurContext
  * 
  * from threading import Thread,Lock             # <<<<<<<<<<<<<<
  * 
@@ -3075,20 +3075,20 @@ if (!__Pyx_RefNanny) {
   /* "dataguzzler_python/savewfm.pyx":39
  * 
  * 
- * class savewfm(object,metaclass=pydg_Module):             # <<<<<<<<<<<<<<
+ * class savewfm(object,metaclass=dgpy_Module):             # <<<<<<<<<<<<<<
  *     Name=None
  * 
  */
   __pyx_t_2 = __Pyx_PyDict_NewPresized(0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 39, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_1 = __Pyx_GetModuleGlobalName(__pyx_n_s_pydg_Module); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 39, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_GetModuleGlobalName(__pyx_n_s_dgpy_Module); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 39, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_t_3 = __Pyx_Py3MetaclassPrepare(__pyx_t_1, __pyx_tuple__7, __pyx_n_s_savewfm, __pyx_n_s_savewfm, __pyx_t_2, __pyx_n_s_dataguzzler_python_savewfm, (PyObject *) NULL); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 39, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
 
   /* "dataguzzler_python/savewfm.pyx":40
  * 
- * class savewfm(object,metaclass=pydg_Module):
+ * class savewfm(object,metaclass=dgpy_Module):
  *     Name=None             # <<<<<<<<<<<<<<
  * 
  *     def __init__(self,Name):
@@ -3146,7 +3146,7 @@ if (!__Pyx_RefNanny) {
   /* "dataguzzler_python/savewfm.pyx":39
  * 
  * 
- * class savewfm(object,metaclass=pydg_Module):             # <<<<<<<<<<<<<<
+ * class savewfm(object,metaclass=dgpy_Module):             # <<<<<<<<<<<<<<
  *     Name=None
  * 
  */

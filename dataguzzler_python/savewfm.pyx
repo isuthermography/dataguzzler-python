@@ -1,8 +1,8 @@
 import sys
 import os
 import time
-from .pydg import Module as pydg_Module
-from .pydg import CurContext
+from .dgpy import Module as dgpy_Module
+from .dgpy import CurContext
 
 from threading import Thread,Lock
 
@@ -36,7 +36,7 @@ cdef extern from "savewfm_c.h":
     pass
 
 
-class savewfm(object,metaclass=pydg_Module):
+class savewfm(object,metaclass=dgpy_Module):
     Name=None
 
     def __init__(self,Name):

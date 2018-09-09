@@ -1321,10 +1321,10 @@ static const char __pyx_k_Lock[] = "Lock";
 static const char __pyx_k_Name[] = "Name";
 static const char __pyx_k_argv[] = "argv";
 static const char __pyx_k_attr[] = "attr";
+static const char __pyx_k_dgpy[] = "dgpy";
 static const char __pyx_k_exit[] = "exit";
 static const char __pyx_k_init[] = "__init__";
 static const char __pyx_k_main[] = "__main__";
-static const char __pyx_k_pydg[] = "pydg";
 static const char __pyx_k_self[] = "self";
 static const char __pyx_k_test[] = "__test__";
 static const char __pyx_k_time[] = "time";
@@ -1375,7 +1375,7 @@ static const char __pyx_k_retlistobj[] = "retlistobj";
 static const char __pyx_k_retlistptr[] = "retlistptr";
 static const char __pyx_k_SONameBytes[] = "SONameBytes";
 static const char __pyx_k_cmdbytesptr[] = "cmdbytesptr";
-static const char __pyx_k_pydg_Module[] = "pydg_Module";
+static const char __pyx_k_dgpy_Module[] = "dgpy_Module";
 static const char __pyx_k_restlistptr[] = "restlistptr";
 static const char __pyx_k_DGModule_cmd[] = "DGModule.cmd";
 static const char __pyx_k_getattribute[] = "__getattribute__";
@@ -1392,7 +1392,7 @@ static const char __pyx_k_cline_in_traceback[] = "cline_in_traceback";
 static const char __pyx_k_dgmainloop_started[] = "dgmainloop_started";
 static const char __pyx_k_start_mainloop_thread[] = "start_mainloop_thread";
 static const char __pyx_k_dataguzzler_python_dgold[] = "dataguzzler_python.dgold";
-static const char __pyx_k_pydg_dgold_rpc_dummyconn[] = "_pydg_dgold_rpc_dummyconn";
+static const char __pyx_k_dgpy_dgold_rpc_dummyconn[] = "_dgpy_dgold_rpc_dummyconn";
 static const char __pyx_k_dataguzzler_python_dgold_pyx[] = "dataguzzler_python/dgold.pyx";
 static PyObject *__pyx_n_s_Action;
 static PyObject *__pyx_n_s_AttributeError;
@@ -1433,6 +1433,9 @@ static PyObject *__pyx_n_s_dccapsule;
 static PyObject *__pyx_n_s_decode;
 static PyObject *__pyx_n_s_dgmainloop;
 static PyObject *__pyx_n_s_dgmainloop_started;
+static PyObject *__pyx_n_s_dgpy;
+static PyObject *__pyx_n_s_dgpy_Module;
+static PyObject *__pyx_n_s_dgpy_dgold_rpc_dummyconn;
 static PyObject *__pyx_n_s_doc;
 static PyObject *__pyx_n_s_dummyconn;
 static PyObject *__pyx_n_s_encode;
@@ -1449,9 +1452,6 @@ static PyObject *__pyx_n_s_metaclass;
 static PyObject *__pyx_n_s_module;
 static PyObject *__pyx_n_s_object;
 static PyObject *__pyx_n_s_prepare;
-static PyObject *__pyx_n_s_pydg;
-static PyObject *__pyx_n_s_pydg_Module;
-static PyObject *__pyx_n_s_pydg_dgold_rpc_dummyconn;
 static PyObject *__pyx_n_s_qualname;
 static PyObject *__pyx_n_s_rawcmd;
 static PyObject *__pyx_n_s_restlistptr;
@@ -1916,8 +1916,8 @@ void QuitError(void) {
  * 
  * 
  * def rpc_authenticated(context):             # <<<<<<<<<<<<<<
- *     if hasattr(context,"_pydg_dgold_rpc_dummyconn"):
- *         dccapsule=context._pydg_dgold_rpc_dummyconn
+ *     if hasattr(context,"_dgpy_dgold_rpc_dummyconn"):
+ *         dccapsule=context._dgpy_dgold_rpc_dummyconn
  */
 
 /* Python wrapper */
@@ -1948,29 +1948,29 @@ static PyObject *__pyx_pf_18dataguzzler_python_5dgold_rpc_authenticated(CYTHON_U
   /* "dataguzzler_python/dgold.pyx":107
  * 
  * def rpc_authenticated(context):
- *     if hasattr(context,"_pydg_dgold_rpc_dummyconn"):             # <<<<<<<<<<<<<<
- *         dccapsule=context._pydg_dgold_rpc_dummyconn
+ *     if hasattr(context,"_dgpy_dgold_rpc_dummyconn"):             # <<<<<<<<<<<<<<
+ *         dccapsule=context._dgpy_dgold_rpc_dummyconn
  *         dummyconn=<Conn *>pycapsule.PyCapsule_GetPointer(dccapsule,NULL)
  */
-  __pyx_t_1 = __Pyx_HasAttr(__pyx_v_context, __pyx_n_s_pydg_dgold_rpc_dummyconn); if (unlikely(__pyx_t_1 == ((int)-1))) __PYX_ERR(0, 107, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_HasAttr(__pyx_v_context, __pyx_n_s_dgpy_dgold_rpc_dummyconn); if (unlikely(__pyx_t_1 == ((int)-1))) __PYX_ERR(0, 107, __pyx_L1_error)
   __pyx_t_2 = (__pyx_t_1 != 0);
   if (__pyx_t_2) {
 
     /* "dataguzzler_python/dgold.pyx":108
  * def rpc_authenticated(context):
- *     if hasattr(context,"_pydg_dgold_rpc_dummyconn"):
- *         dccapsule=context._pydg_dgold_rpc_dummyconn             # <<<<<<<<<<<<<<
+ *     if hasattr(context,"_dgpy_dgold_rpc_dummyconn"):
+ *         dccapsule=context._dgpy_dgold_rpc_dummyconn             # <<<<<<<<<<<<<<
  *         dummyconn=<Conn *>pycapsule.PyCapsule_GetPointer(dccapsule,NULL)
  *         return bool(dummyconn.Auth)
  */
-    __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_v_context, __pyx_n_s_pydg_dgold_rpc_dummyconn); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 108, __pyx_L1_error)
+    __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_v_context, __pyx_n_s_dgpy_dgold_rpc_dummyconn); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 108, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     __pyx_v_dccapsule = __pyx_t_3;
     __pyx_t_3 = 0;
 
     /* "dataguzzler_python/dgold.pyx":109
- *     if hasattr(context,"_pydg_dgold_rpc_dummyconn"):
- *         dccapsule=context._pydg_dgold_rpc_dummyconn
+ *     if hasattr(context,"_dgpy_dgold_rpc_dummyconn"):
+ *         dccapsule=context._dgpy_dgold_rpc_dummyconn
  *         dummyconn=<Conn *>pycapsule.PyCapsule_GetPointer(dccapsule,NULL)             # <<<<<<<<<<<<<<
  *         return bool(dummyconn.Auth)
  *     return False
@@ -1979,7 +1979,7 @@ static PyObject *__pyx_pf_18dataguzzler_python_5dgold_rpc_authenticated(CYTHON_U
     __pyx_v_dummyconn = ((struct Conn *)__pyx_t_4);
 
     /* "dataguzzler_python/dgold.pyx":110
- *         dccapsule=context._pydg_dgold_rpc_dummyconn
+ *         dccapsule=context._dgpy_dgold_rpc_dummyconn
  *         dummyconn=<Conn *>pycapsule.PyCapsule_GetPointer(dccapsule,NULL)
  *         return bool(dummyconn.Auth)             # <<<<<<<<<<<<<<
  *     return False
@@ -1999,8 +1999,8 @@ static PyObject *__pyx_pf_18dataguzzler_python_5dgold_rpc_authenticated(CYTHON_U
     /* "dataguzzler_python/dgold.pyx":107
  * 
  * def rpc_authenticated(context):
- *     if hasattr(context,"_pydg_dgold_rpc_dummyconn"):             # <<<<<<<<<<<<<<
- *         dccapsule=context._pydg_dgold_rpc_dummyconn
+ *     if hasattr(context,"_dgpy_dgold_rpc_dummyconn"):             # <<<<<<<<<<<<<<
+ *         dccapsule=context._dgpy_dgold_rpc_dummyconn
  *         dummyconn=<Conn *>pycapsule.PyCapsule_GetPointer(dccapsule,NULL)
  */
   }
@@ -2021,8 +2021,8 @@ static PyObject *__pyx_pf_18dataguzzler_python_5dgold_rpc_authenticated(CYTHON_U
  * 
  * 
  * def rpc_authenticated(context):             # <<<<<<<<<<<<<<
- *     if hasattr(context,"_pydg_dgold_rpc_dummyconn"):
- *         dccapsule=context._pydg_dgold_rpc_dummyconn
+ *     if hasattr(context,"_dgpy_dgold_rpc_dummyconn"):
+ *         dccapsule=context._dgpy_dgold_rpc_dummyconn
  */
 
   /* function exit code */
@@ -2142,7 +2142,7 @@ static PyObject *__pyx_pf_18dataguzzler_python_5dgold_2rpc_async(CYTHON_UNUSED P
  *     cdef unsigned char *cmdbytesptr
  * 
  *     try:             # <<<<<<<<<<<<<<
- *         dccapsule=object.__getattribute__(context,"_pydg_dgold_rpc_dummyconn")
+ *         dccapsule=object.__getattribute__(context,"_dgpy_dgold_rpc_dummyconn")
  *         dummyconn=<Conn *>pycapsule.PyCapsule_GetPointer(dccapsule,NULL)
  */
   {
@@ -2157,7 +2157,7 @@ static PyObject *__pyx_pf_18dataguzzler_python_5dgold_2rpc_async(CYTHON_UNUSED P
       /* "dataguzzler_python/dgold.pyx":120
  * 
  *     try:
- *         dccapsule=object.__getattribute__(context,"_pydg_dgold_rpc_dummyconn")             # <<<<<<<<<<<<<<
+ *         dccapsule=object.__getattribute__(context,"_dgpy_dgold_rpc_dummyconn")             # <<<<<<<<<<<<<<
  *         dummyconn=<Conn *>pycapsule.PyCapsule_GetPointer(dccapsule,NULL)
  *         pass
  */
@@ -2177,7 +2177,7 @@ static PyObject *__pyx_pf_18dataguzzler_python_5dgold_2rpc_async(CYTHON_UNUSED P
       }
       #if CYTHON_FAST_PYCALL
       if (PyFunction_Check(__pyx_t_5)) {
-        PyObject *__pyx_temp[3] = {__pyx_t_6, __pyx_v_context, __pyx_n_s_pydg_dgold_rpc_dummyconn};
+        PyObject *__pyx_temp[3] = {__pyx_t_6, __pyx_v_context, __pyx_n_s_dgpy_dgold_rpc_dummyconn};
         __pyx_t_4 = __Pyx_PyFunction_FastCall(__pyx_t_5, __pyx_temp+1-__pyx_t_7, 2+__pyx_t_7); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 120, __pyx_L3_error)
         __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
         __Pyx_GOTREF(__pyx_t_4);
@@ -2185,7 +2185,7 @@ static PyObject *__pyx_pf_18dataguzzler_python_5dgold_2rpc_async(CYTHON_UNUSED P
       #endif
       #if CYTHON_FAST_PYCCALL
       if (__Pyx_PyFastCFunction_Check(__pyx_t_5)) {
-        PyObject *__pyx_temp[3] = {__pyx_t_6, __pyx_v_context, __pyx_n_s_pydg_dgold_rpc_dummyconn};
+        PyObject *__pyx_temp[3] = {__pyx_t_6, __pyx_v_context, __pyx_n_s_dgpy_dgold_rpc_dummyconn};
         __pyx_t_4 = __Pyx_PyCFunction_FastCall(__pyx_t_5, __pyx_temp+1-__pyx_t_7, 2+__pyx_t_7); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 120, __pyx_L3_error)
         __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
         __Pyx_GOTREF(__pyx_t_4);
@@ -2200,9 +2200,9 @@ static PyObject *__pyx_pf_18dataguzzler_python_5dgold_2rpc_async(CYTHON_UNUSED P
         __Pyx_INCREF(__pyx_v_context);
         __Pyx_GIVEREF(__pyx_v_context);
         PyTuple_SET_ITEM(__pyx_t_8, 0+__pyx_t_7, __pyx_v_context);
-        __Pyx_INCREF(__pyx_n_s_pydg_dgold_rpc_dummyconn);
-        __Pyx_GIVEREF(__pyx_n_s_pydg_dgold_rpc_dummyconn);
-        PyTuple_SET_ITEM(__pyx_t_8, 1+__pyx_t_7, __pyx_n_s_pydg_dgold_rpc_dummyconn);
+        __Pyx_INCREF(__pyx_n_s_dgpy_dgold_rpc_dummyconn);
+        __Pyx_GIVEREF(__pyx_n_s_dgpy_dgold_rpc_dummyconn);
+        PyTuple_SET_ITEM(__pyx_t_8, 1+__pyx_t_7, __pyx_n_s_dgpy_dgold_rpc_dummyconn);
         __pyx_t_4 = __Pyx_PyObject_Call(__pyx_t_5, __pyx_t_8, NULL); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 120, __pyx_L3_error)
         __Pyx_GOTREF(__pyx_t_4);
         __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
@@ -2213,7 +2213,7 @@ static PyObject *__pyx_pf_18dataguzzler_python_5dgold_2rpc_async(CYTHON_UNUSED P
 
       /* "dataguzzler_python/dgold.pyx":121
  *     try:
- *         dccapsule=object.__getattribute__(context,"_pydg_dgold_rpc_dummyconn")
+ *         dccapsule=object.__getattribute__(context,"_dgpy_dgold_rpc_dummyconn")
  *         dummyconn=<Conn *>pycapsule.PyCapsule_GetPointer(dccapsule,NULL)             # <<<<<<<<<<<<<<
  *         pass
  *     except AttributeError:
@@ -2225,7 +2225,7 @@ static PyObject *__pyx_pf_18dataguzzler_python_5dgold_2rpc_async(CYTHON_UNUSED P
  *     cdef unsigned char *cmdbytesptr
  * 
  *     try:             # <<<<<<<<<<<<<<
- *         dccapsule=object.__getattribute__(context,"_pydg_dgold_rpc_dummyconn")
+ *         dccapsule=object.__getattribute__(context,"_dgpy_dgold_rpc_dummyconn")
  *         dummyconn=<Conn *>pycapsule.PyCapsule_GetPointer(dccapsule,NULL)
  */
     }
@@ -2276,7 +2276,7 @@ static PyObject *__pyx_pf_18dataguzzler_python_5dgold_2rpc_async(CYTHON_UNUSED P
  *         dummyconn.InStream=CreateConnBuf(1024)
  * 
  *         dccapsule=pycapsule.PyCapsule_New(<void *>dummyconn,NULL,DummyConnCapsule_Destructor)             # <<<<<<<<<<<<<<
- *         object.__setattr__(context,"_pydg_dgold_rpc_dummyconn",dccapsule)
+ *         object.__setattr__(context,"_dgpy_dgold_rpc_dummyconn",dccapsule)
  *         pass
  */
       __pyx_t_6 = PyCapsule_New(((void *)__pyx_v_dummyconn), NULL, __pyx_f_18dataguzzler_python_5dgold_DummyConnCapsule_Destructor); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 127, __pyx_L5_except_error)
@@ -2287,7 +2287,7 @@ static PyObject *__pyx_pf_18dataguzzler_python_5dgold_2rpc_async(CYTHON_UNUSED P
       /* "dataguzzler_python/dgold.pyx":128
  * 
  *         dccapsule=pycapsule.PyCapsule_New(<void *>dummyconn,NULL,DummyConnCapsule_Destructor)
- *         object.__setattr__(context,"_pydg_dgold_rpc_dummyconn",dccapsule)             # <<<<<<<<<<<<<<
+ *         object.__setattr__(context,"_dgpy_dgold_rpc_dummyconn",dccapsule)             # <<<<<<<<<<<<<<
  *         pass
  * 
  */
@@ -2307,7 +2307,7 @@ static PyObject *__pyx_pf_18dataguzzler_python_5dgold_2rpc_async(CYTHON_UNUSED P
       }
       #if CYTHON_FAST_PYCALL
       if (PyFunction_Check(__pyx_t_10)) {
-        PyObject *__pyx_temp[4] = {__pyx_t_11, __pyx_v_context, __pyx_n_s_pydg_dgold_rpc_dummyconn, __pyx_v_dccapsule};
+        PyObject *__pyx_temp[4] = {__pyx_t_11, __pyx_v_context, __pyx_n_s_dgpy_dgold_rpc_dummyconn, __pyx_v_dccapsule};
         __pyx_t_6 = __Pyx_PyFunction_FastCall(__pyx_t_10, __pyx_temp+1-__pyx_t_7, 3+__pyx_t_7); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 128, __pyx_L5_except_error)
         __Pyx_XDECREF(__pyx_t_11); __pyx_t_11 = 0;
         __Pyx_GOTREF(__pyx_t_6);
@@ -2315,7 +2315,7 @@ static PyObject *__pyx_pf_18dataguzzler_python_5dgold_2rpc_async(CYTHON_UNUSED P
       #endif
       #if CYTHON_FAST_PYCCALL
       if (__Pyx_PyFastCFunction_Check(__pyx_t_10)) {
-        PyObject *__pyx_temp[4] = {__pyx_t_11, __pyx_v_context, __pyx_n_s_pydg_dgold_rpc_dummyconn, __pyx_v_dccapsule};
+        PyObject *__pyx_temp[4] = {__pyx_t_11, __pyx_v_context, __pyx_n_s_dgpy_dgold_rpc_dummyconn, __pyx_v_dccapsule};
         __pyx_t_6 = __Pyx_PyCFunction_FastCall(__pyx_t_10, __pyx_temp+1-__pyx_t_7, 3+__pyx_t_7); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 128, __pyx_L5_except_error)
         __Pyx_XDECREF(__pyx_t_11); __pyx_t_11 = 0;
         __Pyx_GOTREF(__pyx_t_6);
@@ -2330,9 +2330,9 @@ static PyObject *__pyx_pf_18dataguzzler_python_5dgold_2rpc_async(CYTHON_UNUSED P
         __Pyx_INCREF(__pyx_v_context);
         __Pyx_GIVEREF(__pyx_v_context);
         PyTuple_SET_ITEM(__pyx_t_12, 0+__pyx_t_7, __pyx_v_context);
-        __Pyx_INCREF(__pyx_n_s_pydg_dgold_rpc_dummyconn);
-        __Pyx_GIVEREF(__pyx_n_s_pydg_dgold_rpc_dummyconn);
-        PyTuple_SET_ITEM(__pyx_t_12, 1+__pyx_t_7, __pyx_n_s_pydg_dgold_rpc_dummyconn);
+        __Pyx_INCREF(__pyx_n_s_dgpy_dgold_rpc_dummyconn);
+        __Pyx_GIVEREF(__pyx_n_s_dgpy_dgold_rpc_dummyconn);
+        PyTuple_SET_ITEM(__pyx_t_12, 1+__pyx_t_7, __pyx_n_s_dgpy_dgold_rpc_dummyconn);
         __Pyx_INCREF(__pyx_v_dccapsule);
         __Pyx_GIVEREF(__pyx_v_dccapsule);
         PyTuple_SET_ITEM(__pyx_t_12, 2+__pyx_t_7, __pyx_v_dccapsule);
@@ -2354,7 +2354,7 @@ static PyObject *__pyx_pf_18dataguzzler_python_5dgold_2rpc_async(CYTHON_UNUSED P
  *     cdef unsigned char *cmdbytesptr
  * 
  *     try:             # <<<<<<<<<<<<<<
- *         dccapsule=object.__getattribute__(context,"_pydg_dgold_rpc_dummyconn")
+ *         dccapsule=object.__getattribute__(context,"_dgpy_dgold_rpc_dummyconn")
  *         dummyconn=<Conn *>pycapsule.PyCapsule_GetPointer(dccapsule,NULL)
  */
     __Pyx_XGIVEREF(__pyx_t_1);
@@ -5131,6 +5131,9 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_decode, __pyx_k_decode, sizeof(__pyx_k_decode), 0, 0, 1, 1},
   {&__pyx_n_s_dgmainloop, __pyx_k_dgmainloop, sizeof(__pyx_k_dgmainloop), 0, 0, 1, 1},
   {&__pyx_n_s_dgmainloop_started, __pyx_k_dgmainloop_started, sizeof(__pyx_k_dgmainloop_started), 0, 0, 1, 1},
+  {&__pyx_n_s_dgpy, __pyx_k_dgpy, sizeof(__pyx_k_dgpy), 0, 0, 1, 1},
+  {&__pyx_n_s_dgpy_Module, __pyx_k_dgpy_Module, sizeof(__pyx_k_dgpy_Module), 0, 0, 1, 1},
+  {&__pyx_n_s_dgpy_dgold_rpc_dummyconn, __pyx_k_dgpy_dgold_rpc_dummyconn, sizeof(__pyx_k_dgpy_dgold_rpc_dummyconn), 0, 0, 1, 1},
   {&__pyx_n_s_doc, __pyx_k_doc, sizeof(__pyx_k_doc), 0, 0, 1, 1},
   {&__pyx_n_s_dummyconn, __pyx_k_dummyconn, sizeof(__pyx_k_dummyconn), 0, 0, 1, 1},
   {&__pyx_n_s_encode, __pyx_k_encode, sizeof(__pyx_k_encode), 0, 0, 1, 1},
@@ -5147,9 +5150,6 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_module, __pyx_k_module, sizeof(__pyx_k_module), 0, 0, 1, 1},
   {&__pyx_n_s_object, __pyx_k_object, sizeof(__pyx_k_object), 0, 0, 1, 1},
   {&__pyx_n_s_prepare, __pyx_k_prepare, sizeof(__pyx_k_prepare), 0, 0, 1, 1},
-  {&__pyx_n_s_pydg, __pyx_k_pydg, sizeof(__pyx_k_pydg), 0, 0, 1, 1},
-  {&__pyx_n_s_pydg_Module, __pyx_k_pydg_Module, sizeof(__pyx_k_pydg_Module), 0, 0, 1, 1},
-  {&__pyx_n_s_pydg_dgold_rpc_dummyconn, __pyx_k_pydg_dgold_rpc_dummyconn, sizeof(__pyx_k_pydg_dgold_rpc_dummyconn), 0, 0, 1, 1},
   {&__pyx_n_s_qualname, __pyx_k_qualname, sizeof(__pyx_k_qualname), 0, 0, 1, 1},
   {&__pyx_n_s_rawcmd, __pyx_k_rawcmd, sizeof(__pyx_k_rawcmd), 0, 0, 1, 1},
   {&__pyx_n_s_restlistptr, __pyx_k_restlistptr, sizeof(__pyx_k_restlistptr), 0, 0, 1, 1},
@@ -5293,8 +5293,8 @@ static int __Pyx_InitCachedConstants(void) {
  * 
  * 
  * def rpc_authenticated(context):             # <<<<<<<<<<<<<<
- *     if hasattr(context,"_pydg_dgold_rpc_dummyconn"):
- *         dccapsule=context._pydg_dgold_rpc_dummyconn
+ *     if hasattr(context,"_dgpy_dgold_rpc_dummyconn"):
+ *         dccapsule=context._dgpy_dgold_rpc_dummyconn
  */
   __pyx_tuple__11 = PyTuple_Pack(3, __pyx_n_s_context, __pyx_n_s_dccapsule, __pyx_n_s_dummyconn); if (unlikely(!__pyx_tuple__11)) __PYX_ERR(0, 106, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__11);
@@ -5373,7 +5373,7 @@ static int __Pyx_InitCachedConstants(void) {
   /* "dataguzzler_python/dgold.pyx":201
  *     pass
  * 
- * class DGModule(object,metaclass=pydg_Module):             # <<<<<<<<<<<<<<
+ * class DGModule(object,metaclass=dgpy_Module):             # <<<<<<<<<<<<<<
  *     Name=None
  * 
  */
@@ -5698,7 +5698,7 @@ if (!__Pyx_RefNanny) {
   /* "dataguzzler_python/dgold.pyx":1
  * import sys             # <<<<<<<<<<<<<<
  * import time
- * from .pydg import Module as pydg_Module
+ * from .dgpy import Module as dgpy_Module
  */
   __pyx_t_1 = __Pyx_Import(__pyx_n_s_sys, 0, -1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 1, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
@@ -5708,8 +5708,8 @@ if (!__Pyx_RefNanny) {
   /* "dataguzzler_python/dgold.pyx":2
  * import sys
  * import time             # <<<<<<<<<<<<<<
- * from .pydg import Module as pydg_Module
- * from .pydg import CurContext
+ * from .dgpy import Module as dgpy_Module
+ * from .dgpy import CurContext
  */
   __pyx_t_1 = __Pyx_Import(__pyx_n_s_time, 0, -1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 2, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
@@ -5719,8 +5719,8 @@ if (!__Pyx_RefNanny) {
   /* "dataguzzler_python/dgold.pyx":3
  * import sys
  * import time
- * from .pydg import Module as pydg_Module             # <<<<<<<<<<<<<<
- * from .pydg import CurContext
+ * from .dgpy import Module as dgpy_Module             # <<<<<<<<<<<<<<
+ * from .dgpy import CurContext
  * 
  */
   __pyx_t_1 = PyList_New(1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 3, __pyx_L1_error)
@@ -5728,19 +5728,19 @@ if (!__Pyx_RefNanny) {
   __Pyx_INCREF(__pyx_n_s_Module);
   __Pyx_GIVEREF(__pyx_n_s_Module);
   PyList_SET_ITEM(__pyx_t_1, 0, __pyx_n_s_Module);
-  __pyx_t_2 = __Pyx_Import(__pyx_n_s_pydg, __pyx_t_1, 1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 3, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_Import(__pyx_n_s_dgpy, __pyx_t_1, 1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 3, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __pyx_t_1 = __Pyx_ImportFrom(__pyx_t_2, __pyx_n_s_Module); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 3, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_pydg_Module, __pyx_t_1) < 0) __PYX_ERR(0, 3, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_dgpy_Module, __pyx_t_1) < 0) __PYX_ERR(0, 3, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
   /* "dataguzzler_python/dgold.pyx":4
  * import time
- * from .pydg import Module as pydg_Module
- * from .pydg import CurContext             # <<<<<<<<<<<<<<
+ * from .dgpy import Module as dgpy_Module
+ * from .dgpy import CurContext             # <<<<<<<<<<<<<<
  * 
  * from threading import Thread,Lock
  */
@@ -5749,7 +5749,7 @@ if (!__Pyx_RefNanny) {
   __Pyx_INCREF(__pyx_n_s_CurContext);
   __Pyx_GIVEREF(__pyx_n_s_CurContext);
   PyList_SET_ITEM(__pyx_t_2, 0, __pyx_n_s_CurContext);
-  __pyx_t_1 = __Pyx_Import(__pyx_n_s_pydg, __pyx_t_2, 1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 4, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_Import(__pyx_n_s_dgpy, __pyx_t_2, 1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 4, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __pyx_t_2 = __Pyx_ImportFrom(__pyx_t_1, __pyx_n_s_CurContext); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 4, __pyx_L1_error)
@@ -5759,7 +5759,7 @@ if (!__Pyx_RefNanny) {
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
   /* "dataguzzler_python/dgold.pyx":6
- * from .pydg import CurContext
+ * from .dgpy import CurContext
  * 
  * from threading import Thread,Lock             # <<<<<<<<<<<<<<
  * 
@@ -5967,8 +5967,8 @@ if (!__Pyx_RefNanny) {
  * 
  * 
  * def rpc_authenticated(context):             # <<<<<<<<<<<<<<
- *     if hasattr(context,"_pydg_dgold_rpc_dummyconn"):
- *         dccapsule=context._pydg_dgold_rpc_dummyconn
+ *     if hasattr(context,"_dgpy_dgold_rpc_dummyconn"):
+ *         dccapsule=context._dgpy_dgold_rpc_dummyconn
  */
   __pyx_t_2 = PyCFunction_NewEx(&__pyx_mdef_18dataguzzler_python_5dgold_1rpc_authenticated, NULL, __pyx_n_s_dataguzzler_python_dgold); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 106, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
@@ -6050,20 +6050,20 @@ if (!__Pyx_RefNanny) {
   /* "dataguzzler_python/dgold.pyx":201
  *     pass
  * 
- * class DGModule(object,metaclass=pydg_Module):             # <<<<<<<<<<<<<<
+ * class DGModule(object,metaclass=dgpy_Module):             # <<<<<<<<<<<<<<
  *     Name=None
  * 
  */
   __pyx_t_2 = __Pyx_PyDict_NewPresized(0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 201, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_1 = __Pyx_GetModuleGlobalName(__pyx_n_s_pydg_Module); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 201, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_GetModuleGlobalName(__pyx_n_s_dgpy_Module); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 201, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_t_4 = __Pyx_Py3MetaclassPrepare(__pyx_t_1, __pyx_tuple__24, __pyx_n_s_DGModule, __pyx_n_s_DGModule, __pyx_t_2, __pyx_n_s_dataguzzler_python_dgold, (PyObject *) NULL); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 201, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
 
   /* "dataguzzler_python/dgold.pyx":202
  * 
- * class DGModule(object,metaclass=pydg_Module):
+ * class DGModule(object,metaclass=dgpy_Module):
  *     Name=None             # <<<<<<<<<<<<<<
  * 
  *     def __init__(self,Name,SOName,ModParams):
@@ -6121,7 +6121,7 @@ if (!__Pyx_RefNanny) {
   /* "dataguzzler_python/dgold.pyx":201
  *     pass
  * 
- * class DGModule(object,metaclass=pydg_Module):             # <<<<<<<<<<<<<<
+ * class DGModule(object,metaclass=dgpy_Module):             # <<<<<<<<<<<<<<
  *     Name=None
  * 
  */
@@ -6136,7 +6136,7 @@ if (!__Pyx_RefNanny) {
   /* "dataguzzler_python/dgold.pyx":1
  * import sys             # <<<<<<<<<<<<<<
  * import time
- * from .pydg import Module as pydg_Module
+ * from .dgpy import Module as dgpy_Module
  */
   __pyx_t_2 = __Pyx_PyDict_NewPresized(0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 1, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);

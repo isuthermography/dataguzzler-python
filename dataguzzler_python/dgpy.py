@@ -17,7 +17,7 @@ import pdb
 #    import limatix.lm_units
 #    pass
 #except ImportError:
-#    sys.stderr.write("pydg: limatix not available; dc_value units will not be supported\n")
+#    sys.stderr.write("dgpy: limatix not available; dc_value units will not be supported\n")
 #    pass
 
 import pint # units library
@@ -57,10 +57,10 @@ class ModuleException(Exception):
 
 
 # For any thread, ThreadContext.execution
-# is a stack of objects, such as PyDGConn, or a pydg.Module
+# is a stack of objects, such as PyDGConn, or a dgpy.Module
 # representing the current execution context of the module.
-# that has a ._pydg_contextlock member and a _pydg_contextname member. The current context is the bottom-most
-# element and the ._pydg_contextlock member of that context should be held by the
+# that has a ._dgpy_contextlock member and a _dgpy_contextname member. The current context is the bottom-most
+# element and the ._dgpy_contextlock member of that context should be held by the
 # current executing thread. 
 ThreadContext=threading.local()
 
@@ -73,8 +73,8 @@ def InitThread():
     
 
 def InitContext(context,name):
-    object.__setattr__(context,"_pydg_contextlock",threading.Lock())
-    object.__setattr__(context,"_pydg_contextname",str(name))
+    object.__setattr__(context,"_dgpy_contextlock",threading.Lock())
+    object.__setattr__(context,"_dgpy_contextname",str(name))
     pass
 
 def InitThreadContext(context,name):
@@ -85,11 +85,11 @@ def InitThreadContext(context,name):
 
 def PushThreadContext(context):  # Always pair with a PopThreadContext in a finally clause
     if len(ThreadContext.execution) > 0:
-        object.__getattribute__(ThreadContext.execution[0],"_pydg_contextlock").release()
+        object.__getattribute__(ThreadContext.execution[0],"_dgpy_contextlock").release()
         pass
 
     if context is not None:
-        object.__getattribute__(context,"_pydg_contextlock").acquire()
+        object.__getattribute__(context,"_dgpy_contextlock").acquire()
         pass
     ThreadContext.execution.insert(0,context)
     pass
@@ -97,11 +97,11 @@ def PushThreadContext(context):  # Always pair with a PopThreadContext in a fina
 def PopThreadContext():
     context=ThreadContext.execution.pop(0)
     if context is not None:
-        object.__getattribute__(context,"_pydg_contextlock").release()
+        object.__getattribute__(context,"_dgpy_contextlock").release()
         pass
     
     if len(ThreadContext.execution) > 0:
-        object.__getattribute__(ThreadContext.execution[0],"_pydg_contextlock").acquire()
+        object.__getattribute__(ThreadContext.execution[0],"_dgpy_contextlock").acquire()
         pass
     
     return context
@@ -115,8 +115,8 @@ def InContext(context):
     return False
 
 class SimpleContext(object):
-    _pydg_contextlock=None
-    _pydg_contextname=None
+    _dgpy_contextlock=None
+    _dgpy_contextname=None
     pass
 
 
@@ -143,7 +143,7 @@ class OpaqueWrapper(object):
 
 
 def RunInContext(context,routine,routinename,args,kwargs):
-    #sys.stderr.write("RunInContext(%s,%s,%s,%s)\n" % (object.__getattribute__(context,"_pydg_contextname"),str(routine),routinename,str(routine.__code__)))
+    #sys.stderr.write("RunInContext(%s,%s,%s,%s)\n" % (object.__getattribute__(context,"_dgpy_contextname"),str(routine),routinename,str(routine.__code__)))
     #sys.stderr.flush()
     #def routine_runner(parentcontext,context,routine,args,kwargs):
     #    PushThreadContext(context)
@@ -193,7 +193,7 @@ def RunInContext(context,routine,routinename,args,kwargs):
     return censoredres
     
     
-#def wrapobj(pydg_mod,obj,objname,args,kwargs):
+#def wrapobj(dgpy_mod,obj,objname,args,kwargs):
     # "Proposed Alternative" (now implemented)
     #   * Create a thread pool for this module/connection(or all modules?)
     #   * Define an explicit lock  per module/connection object.
@@ -241,16 +241,16 @@ def RunInContext(context,routine,routinename,args,kwargs):
     #
     
     # Call the specified object (which should be some kind of method or wrapped)
-    # in the correct thread context for pydg_mod, and wait for it to return.
+    # in the correct thread context for dgy_mod, and wait for it to return.
     #
     # args and kwargs presumed to be already censored
 #
-#    if InContext(pydg_mod):
+#    if InContext(dgpy_mod):
 #        # already in correct context... just do it
 #        return obj(*args,**kwargs)
 #
 #    ## get main loop object
-#    #callee_loop=object.__getattribute__(pydg_mod,"_pydg_mainloop")
+#    #callee_loop=object.__getattribute__(dgpy_mod,"_dgpy_mainloop")
 #
 #    callerfuture=asyncio.Future()  # future for the caller context, operating based on main loop for the caller's thread
     
@@ -402,7 +402,7 @@ def censorobj(sourcecontext,destcontext,attrname,obj):
         return arraycopy
    
  
-    # if obj is an instance of our pydg.threadsafe abstract base class,
+    # if obj is an instance of our dgpy.threadsafe abstract base class,
     # then it should be OK
     #sys.stderr.write("type(obj)=%s\n" % (str(type(obj))))
     if isinstance(obj,threadsafe):
@@ -466,34 +466,34 @@ def censorobj(sourcecontext,destcontext,attrname,obj):
 def pm():
     """ pdb debugger... like pdb.pm() """
     frame=inspect.currentframe()
-    (etype,evalue,last_tb) = frame.f_back.f_locals["__pydg_last_exc_info"]
+    (etype,evalue,last_tb) = frame.f_back.f_locals["__dgpy_last_exc_info"]
     traceback.print_exception(etype,evalue,last_tb)
     pdb.post_mortem(last_tb)
     pass
 
 
 class Module(type):
-    # Metaclass for pydg modules
+    # Metaclass for dgpy modules
     
     def __init__(cls,*args,**kwargs):
-        # This is called on definition of the pydg module class as the class is defined
+        # This is called on definition of the dgpy module class as the class is defined
 
-        ## Define _pydg_threadcode method for the pydg module class
-        #def _pydg_threadcode(self):
-        #    self._pydg_mainloop=asyncio.new_event_loop()
-        #    self._pydg_mainloop.set_debug(True)
-        #    self._pydg_mainloop.run_forever()
-        #    self._pydg_mainloop.close()
+        ## Define _dgpy_threadcode method for the dgpy module class
+        #def _dgpy_threadcode(self):
+        #    self._dgpy_mainloop=asyncio.new_event_loop()
+        #    self._dgpy_mainloop.set_debug(True)
+        #    self._dgpy_mainloop.run_forever()
+        #    self._dgpy_mainloop.close()
         #    pass
         #
-        #setattr(cls,"_pydg_threadcode",_pydg_threadcode)
+        #setattr(cls,"_dgpy_threadcode",_dgpy_threadcode)
 
-        # define __new__ method for the pydg module class
-        # ... this creates and initializes the ._pydg_contextlock member
+        # define __new__ method for the dgpy module class
+        # ... this creates and initializes the ._dgpy_contextlock member
         # and sets the context of executing the __new__ method
         def __new__(cls,*args,**kwargs):
             newobj=object.__new__(cls)
-            InitContext(newobj,args[0]) # add _pydg_contextlock member
+            InitContext(newobj,args[0]) # add _dgpy_contextlock member
             #import pdb
             #pdb.set_trace()
             PushThreadContext(newobj) # Set context... released in__call__ below
@@ -501,7 +501,7 @@ class Module(type):
         setattr(cls,"__new__",__new__)
         
         
-        # Define __getattribute__ method for the pydg module class
+        # Define __getattribute__ method for the dgpy module class
         # Getattribute wraps all attribute accesses (except magic method accesses)
         # to return wrapped objects, including methods that shift context
         orig_getattribute=getattr(cls,"__getattribute__")
@@ -550,7 +550,7 @@ class Module(type):
                     # attribute really doesn't exist
                     raise
                 pass
-            if attrname=="_pydg_contextlock":
+            if attrname=="_dgpy_contextlock":
                 # always return the lock unwrapped
                 return attr
             
@@ -578,7 +578,7 @@ class Module(type):
 
 
     def __call__(cls,*args,**kwargs):
-        # called on creation of an object (pydg module)
+        # called on creation of an object (dgpy module)
 
         # Create object
         try: 
@@ -588,10 +588,10 @@ class Module(type):
             PopThreadContext()  # Paired with PushThreadContext in __new__() above
             pass
         
-        # define _pydg_thread and _mainloop attributes; start thread
-        #newmod._pydg_mainloop=None
-        #newmod._pydg_thread=Thread(target=newmod._threadcode)
-        #newmod._pydg_thread.start()
+        # define _dgpy_thread and _mainloop attributes; start thread
+        #newmod._dgpy_mainloop=None
+        #newmod._dgpy_thread=Thread(target=newmod._threadcode)
+        #newmod._dgpy_thread.start()
 
         
         
@@ -604,6 +604,6 @@ class Module(type):
 # and can therefore be freely passed between contexts
 class threadsafe(object,metaclass=abc.ABCMeta):
     pass
-# Use pydg.threadsafe.register(my_class)  to register your new class
+# Use dgpy.threadsafe.register(my_class)  to register your new class
 
 #threadsafe.register(limatix.dc_value.value)

@@ -1,7 +1,7 @@
 import sys
 import time
-from .pydg import Module as pydg_Module
-from .pydg import CurContext
+from .dgpy import Module as dgpy_Module
+from .dgpy import CurContext
 
 from threading import Thread,Lock
 
@@ -104,8 +104,8 @@ cdef public void QuitError() nogil:
 
 
 def rpc_authenticated(context):
-    if hasattr(context,"_pydg_dgold_rpc_dummyconn"):
-        dccapsule=context._pydg_dgold_rpc_dummyconn
+    if hasattr(context,"_dgpy_dgold_rpc_dummyconn"):
+        dccapsule=context._dgpy_dgold_rpc_dummyconn
         dummyconn=<Conn *>pycapsule.PyCapsule_GetPointer(dccapsule,NULL)
         return bool(dummyconn.Auth)
     return False
@@ -117,7 +117,7 @@ def rpc_async(context,bytes cmdbytes):
     cdef unsigned char *cmdbytesptr
 
     try:
-        dccapsule=object.__getattribute__(context,"_pydg_dgold_rpc_dummyconn")
+        dccapsule=object.__getattribute__(context,"_dgpy_dgold_rpc_dummyconn")
         dummyconn=<Conn *>pycapsule.PyCapsule_GetPointer(dccapsule,NULL)
         pass
     except AttributeError:        
@@ -125,7 +125,7 @@ def rpc_async(context,bytes cmdbytes):
         dummyconn.InStream=CreateConnBuf(1024)
         
         dccapsule=pycapsule.PyCapsule_New(<void *>dummyconn,NULL,DummyConnCapsule_Destructor)
-        object.__setattr__(context,"_pydg_dgold_rpc_dummyconn",dccapsule)
+        object.__setattr__(context,"_dgpy_dgold_rpc_dummyconn",dccapsule)
         pass
 
     retlist=[]
@@ -198,7 +198,7 @@ def library(SOName,initparams=""):
 
     pass
 
-class DGModule(object,metaclass=pydg_Module):
+class DGModule(object,metaclass=dgpy_Module):
     Name=None
     
     def __init__(self,Name,SOName,ModParams):

@@ -11,18 +11,18 @@ from ..mainloop import PyDGConn,OldDGConn
 from ..mainloop import process_line
 from ..mainloop import write_response
 
-from ..pydg import SimpleContext
-from ..pydg import InitThreadContext
-from ..pydg import PushThreadContext,PopThreadContext
+from ..dgpy import SimpleContext
+from ..dgpy import InitThreadContext
+from ..dgpy import PushThreadContext,PopThreadContext
 
-pydg_config=None
+dgpy_config=None
 
 def main(args=None):
     if args is None:
         args=sys.argv
         pass
     
-    global pydg_config  #  reminder
+    global dgpy_config  #  reminder
     if sys.version_info < (3,6,0):
         raise ValueError("Insufficient Python version: Requires Python 3.6 or above")
     
@@ -56,18 +56,18 @@ def main(args=None):
 
     ConfigContext=SimpleContext()
     
-    InitThreadContext(ConfigContext,"pydg_config") # Allow to run stuff from main thread
+    InitThreadContext(ConfigContext,"dgpy_config") # Allow to run stuff from main thread
     PushThreadContext(ConfigContext)
     
     configfile=args[1]
 
     # define config file
-    spec = importlib.util.spec_from_file_location("pydg_config", configfile)
+    spec = importlib.util.spec_from_file_location("dgpy_config", configfile)
     # load config file
-    pydg_config = importlib.util.module_from_spec(spec)
-    sys.modules["pydg_config"]=pydg_config
+    dgpy_config = importlib.util.module_from_spec(spec)
+    sys.modules["dgpy_config"]=dgpy_config
     # run config file 
-    spec.loader.exec_module(pydg_config)
+    spec.loader.exec_module(dgpy_config)
 
     PopThreadContext()
 
@@ -83,10 +83,10 @@ def main(args=None):
     globaldecls=[]
     localdict={}
 
-    readline.set_completer(rlcompleter.Completer(pydg_config.__dict__).complete)
+    readline.set_completer(rlcompleter.Completer(dgpy_config.__dict__).complete)
     
     while(True):
-        InStr=input("pydg> ")
+        InStr=input("dgpy> ")
         (rc,ret,bt)=process_line(globaldecls,localdict,InStr)
         if bt is None:
             write_response(sys.stdout.buffer,rc,repr(ret).encode('utf-8'))

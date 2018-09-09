@@ -17,11 +17,11 @@ Locking architecture
 Python GIL: Used to serialize access to dataguzzler libraries such
 as wfmstore.
 
-pydg contexts: Each pydg context (such as a connection or module)
-has a _pydg_contextlock member.
+dgpy contexts: Each dgpy context (such as a connection or module)
+has a _dgpy_contextlock member.
 
 Each thread has a thread-local context stack (stored in
-pydg.ThreadContext.execution). Only the topmost (first)
+dgpy.ThreadContext.execution). Only the topmost (first)
 element is locked. As threads make calls to different modules,
 the module wrappers trigger a context push and the the old context
 is released and the new context is locked. 
