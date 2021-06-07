@@ -1,7 +1,8 @@
 import sys
 import os
 
-from dataguzzler_python import pydg
+from dataguzzler_python import dgpy
+from dataguzzler_python.dgpy import u
 from dataguzzler_python.dgpy import check_dgpython
 
 check_dgpython()
@@ -27,20 +28,20 @@ AUTH=dgold.DGModule("AUTH","auth.so",r"""
 
 
 
-class DemoClass(object,metaclass=pydg.Module):
+class DemoClass(object,metaclass=dgpy.Module):
     def __init__(self,modulename): # modulename MUST be first parameter
         print("Init the hardware")
-        assert(pydg.CurContext() is self)
+        assert(dgpy.CurContext() is self)
         pass
 
     def write(self):
         print("Write to the hardware")
-        assert(pydg.CurContext() is self)
+        assert(dgpy.CurContext() is self)
         pass
 
     def read(self):
         print("read from the hardware")
-        assert(pydg.CurContext() is self)
+        assert(dgpy.CurContext() is self)
         pass
 
     #def __repr__(self):
