@@ -1,6 +1,9 @@
 import sys
 import os
+from types import ModuleType
 import importlib
+import posixpath
+from urllib.request import url2pathname
 import atexit
 # Enable readline editing/history/completion, as in 'python -i' interactive mode
 import readline
@@ -50,9 +53,61 @@ def whofunc(globalkeys,localkeys):
         pass
     return "".join(outlist)
     
+
+
+class DGPyConfigFileLoader(importlib.machinery.SourceFileLoader):
+    """Loader for .dgp config files with include() 
+    function in __dict__"""
+
+    def create_module(self,spec):
+        module = ModuleType(spec.name)
+        module.__file__ = self.path
+        #module.__dict__ = {}
+        module.__dict__["__builtins__"]=__builtins__
+        module.__dict__["_contextstack"]=os.path.split(self.path)[0]
+
+        def DGPyConfigFile_include(includeurl):
+            """Include a sub-config file as if it were 
+            inserted in your main config file. 
             
+            Provide the relative or absolute path (includeurl)
+            in URL notation with forward slashes and percent-encoding of special 
+            characters"""
+            
+            if posixpath.isabs(includeurl):
+                includepath = url2pathname(includeurl)
+                pass
+            else:
+                includepath = os.path.join(module.__dict__["_contextstack"][-1],url2pathname(includeurl))
+                pass
+            
+            # Now includepath is the path of my include file
+            # push to context stack
+            module.__dict__["_contextstack"].append(includepath)
+            
+            # load
+            includefh=open(includepath,"r")
+            includestr=includefh.read()
+            includefh.close()
+            code = compile(includestr,includepath,'exec')
+            
+            # run
+            exec(code,module.__dict__,module.__dict__)
+            run_config(href,config_globals)
+            
+            # pop from context stack        
+            module.__dict__["_contextstack"].pop()        
+            pass
+        
 
-
+        
+        module.__dict__["include"]=DGPyConfigFile_include
+        module.__spec__=spec
+        module.__loader__=self
+        module.__annotations__={}
+        module.__doc__=None
+        return module
+    pass
 
 def main(args=None):
     if args is None:
@@ -103,8 +158,8 @@ def main(args=None):
     localdict={}
     dgpy.dgpy_running=True
 
-    # define config file
-    spec = importlib.util.spec_from_file_location("dgpy_config", configfile)
+    # define config file... Use custom loader so we can insert "include" function into default dictionary
+    spec = importlib.util.spec_from_file_location("dgpy_config", configfile,loader=DGPyConfigFileLoader("dgpy_config",configfile))
     # load config file
     dgpy_config = importlib.util.module_from_spec(spec)
     sys.modules["dgpy_config"]=dgpy_config
