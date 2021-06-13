@@ -35,10 +35,11 @@ if sys.version_info < (3,6,0):
 
 
 setup(name="dataguzzler_python",
-            description="dataguzzler_python",
-            author="Stephen D. Holland",
-            url="http://thermal.cnde.iastate.edu",
-            ext_modules=ext_modules,
-            packages=["dataguzzler_python","dataguzzler_python.bin"],
-            package_data={ "dataguzzler_python": [ "__init__.pxd", "wfmstore.pxd","dg_internal.pxd","dgold.pxd","dgold_module_c.h","dgold_locking_c.h" ]},
-            entry_points={"console_scripts": console_scripts_entrypoints })
+      description="dataguzzler_python",
+      author="Stephen D. Holland",
+      url="http://thermal.cnde.iastate.edu",
+      ext_modules=ext_modules,
+      zip_safe=False,
+      packages=["dataguzzler_python","dataguzzler_python.bin"],
+      package_data={ "dataguzzler_python": [ "__init__.pxd", "wfmstore.pxd","dg_internal.pxd","dgold.pxd","dgold_module_c.h","dgold_locking_c.h" ]},
+      entry_points={"console_scripts": console_scripts_entrypoints })

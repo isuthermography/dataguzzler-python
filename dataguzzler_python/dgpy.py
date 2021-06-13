@@ -11,6 +11,8 @@ import traceback
 import copy
 import pdb
 
+from .remoteproxy import remoteproxy
+
 #try:
 #    import limatix
 #    import limatix.dc_value
@@ -73,16 +75,32 @@ ThreadContext=threading.local()
 def InitThread():
     ThreadContext.execution=[]  # Create new context stack
     pass
-    
 
-def InitContext(context,name):
-    object.__setattr__(context,"_dgpy_contextlock",threading.Lock())
-    object.__setattr__(context,"_dgpy_contextname",str(name))
+
+def InitFreeThread():
+    """Use this to initialize a thread that may call dgpy modules or contexts,
+    but initialized with no context of its own"""
+    InitThread()
+    ThreadContext.execution.insert(0,None)
     pass
 
-def InitThreadContext(context,name):
+def InitCompatibleThread(module,namesuffix):
+    """Use this to initialize a thread that may freely access member variables, etc. of the given module, even though it isn't the primary thread context of the module"""
+    context=SimpleContext()
+    InitThreadContext(context,object.__getattribute__(module,"_dgpy_contextname")+"namesuffix",compatible=module)
+    PushThreadContext(context)
+    pass
+
+
+def InitContext(context,name,compatible=None):
+    object.__setattr__(context,"_dgpy_contextlock",threading.Lock())
+    object.__setattr__(context,"_dgpy_contextname",str(name))
+    object.__setattr__(context,"_dgpy_compatible",compatible)
+    pass
+
+def InitThreadContext(context,name,compatible=None):
     InitThread()
-    InitContext(context,name)
+    InitContext(context,name,compatible=compatible)
     pass
 
 def check_dgpython():
@@ -93,7 +111,10 @@ def check_dgpython():
 
 def PushThreadContext(context):  # Always pair with a PopThreadContext in a finally clause
     if len(ThreadContext.execution) > 0:
-        object.__getattribute__(ThreadContext.execution[0],"_dgpy_contextlock").release()
+        TopContext = ThreadContext.execution[0]
+        if TopContext is not None:
+            object.__getattribute__(TopContext,"_dgpy_contextlock").release()
+            pass
         pass
 
     if context is not None:
@@ -109,16 +130,26 @@ def PopThreadContext():
         pass
     
     if len(ThreadContext.execution) > 0:
-        object.__getattribute__(ThreadContext.execution[0],"_dgpy_contextlock").acquire()
+        TopContext = ThreadContext.execution[0]
+        if TopContext is not None:
+            object.__getattribute__(TopContext,"_dgpy_contextlock").acquire()
+            pass
         pass
     
     return context
 
 def CurContext():
-    return ThreadContext.execution[0]
+    ctx = ThreadContext.execution[0]
+    compatible = None
+    if ctx is not None:
+        compatible = object.__getattribute__(ctx,"_dgpy_compatible")
+        pass
+    
+    return (ctx,compatible)
 
 def InContext(context):
-    if context is ThreadContext.execution[0]:
+    (cur_ctx,cur_compatible) = CurContext()
+    if context is cur_ctx or context is cur_compatible:
         return True
     return False
 
@@ -140,10 +171,16 @@ class OpaqueWrapper(object):
         pass
 
     def attemptunwrap(self,targetcontext=None):
+        targetcontext_compatible = None
         if targetcontext is None:
             targetcontext=ThreadContext.execution[0]
-        if self.context is targetcontext:
-            return _wrappedobj
+            pass
+        if targetcontext is not None:
+            targetcontext_compatible = object.__getattribute__(targetcontext,"_dgpy_compatible")
+            pass
+        
+        if self.context is targetcontext or self.context is targetcontext_compatible:  
+            return object.__getattribute__(self,"_wrappedobj")
         else:
             return self
         pass
@@ -164,9 +201,9 @@ def RunInContext(context,routine,routinename,args,kwargs):
     #    censoredres=censorobj(context,parentcontext,".retval",res)
     #    return censoredres
 
-    parentcontext=CurContext()
+    (parentcontext,pc_compatible)=CurContext()
 
-    if parentcontext is context:
+    if context is parentcontext or context is pc_compatible or hasattr(routine,"_dgpy_nowrapping"):
         # No context switch necessary
         return routine(*args,**kwargs)
 
@@ -192,7 +229,13 @@ def RunInContext(context,routine,routinename,args,kwargs):
     PushThreadContext(context)
     try: 
         res=routine(*censoredargs,**censoredkwargs)
-        censoredres=censorobj(context,parentcontext,".retval",res)
+        if not hasattr(res,"_dgpy_nowrapping"):
+            censoredres=censorobj(context,parentcontext,".retval",res)
+            pass
+        else:
+            censoredres=res
+            pass
+        
         pass
     finally:
         PopThreadContext()
@@ -354,9 +397,13 @@ def censorobj(sourcecontext,destcontext,attrname,obj):
 
     # May be called from either context... needs to be thread safe
 
-    if sourcecontext is destcontext:
+    if sourcecontext is destcontext or (destcontext is not None and sourcecontext is object.__getattribute__(destcontext,"_dgpy_compatible")):
         return obj # nothing to do!
-    
+
+    if object.__getattribute__(obj,"__class__") is remoteproxy:
+        # remoteproxies can be passed around freely
+        return obj
+
     if isinstance(obj,bool):
         return bool(obj)
 
@@ -384,14 +431,14 @@ def censorobj(sourcecontext,destcontext,attrname,obj):
     if obj is NotImplemented or obj is None:
         return obj
     
-    curcontext=CurContext()
+    (curcontext, cc_compatible)=CurContext()
     
     # array, or array or number with units
     if isinstance(obj,np.ndarray) or isinstance(obj,pint.util.SharedRegistryObject): # pint.util.SharedRegistryObject is a base class of all pint numbers with units
         # Theoretically we should probably check the type of the array
         
         # Need to copy array in source context
-        if curcontext is not sourcecontext:
+        if curcontext is not sourcecontext and cc_compatible is not sourcecontext:
             PushThreadContext(sourcecontext)
             try:
                 arraycopy=copy.deepcopy(obj) # return copy
@@ -480,6 +527,20 @@ def pm():
     pass
 
 
+def dgpy_nowrap(method):
+    """Decorator for methods to tell dgpy.Module that the method
+    doesn't need any wrapping or censoring. 
+    usage:
+    @dgpy_nowrap
+    def mymethod(self,myarg):
+        ...
+        pass
+    """
+    setattr(method,"_dgpy_nowrapping",True)
+    return method
+
+    
+
 class Module(type):
     # Metaclass for dgpy modules
     
@@ -516,7 +577,6 @@ class Module(type):
 
         
         def __getattribute__(self,attrname):
-            curcontext=CurContext()
             
             if attrname=="__class__":
                 return object.__getattribute__(self,attrname)
@@ -524,7 +584,8 @@ class Module(type):
             try:
                 #attr=object.__getattribute__(self,attrname)
                 #attr=orig_getattribute(self,attrname)
-                
+
+                ### !!!! Should put in a shortcut here so if __getattribute__ isn't overloaded, we just use regular __getattribute__
                 attr=RunInContext(self,orig_getattribute,"__getattribute__",(self,attrname),{})
                 pass
             except AttributeError:
@@ -543,10 +604,12 @@ class Module(type):
                     #sys.stderr.write("getattrflag: %s\n" % (attrname))
                     #sys.stderr.flush()
                     
+                    (curcontext,cc_compatible)=CurContext()
                     censoredattrname=str(attrname)
                     PushThreadContext(self)
                     try: 
                         getattr_res=__getattr__(censoredattrname)
+
                         censoredres=censorobj(self,curcontext,censoredattrname,getattr_res)
                         pass
                     finally:
@@ -564,8 +627,12 @@ class Module(type):
             
             #return censorobj(self,curcontext,attrname,attr)
             return attr # RunInContext already censored result
+        
         setattr(cls,"__getattribute__",__getattribute__)
-
+        # try binding __getattribute__ to the class instead.
+        # ref: https://stackoverflow.com/questions/1015307/python-bind-an-unbound-method
+        #ga_bound = __getattribute__.__get__(cls,cls.__class__)
+        #setattr(cls,"__getattribute__",ga_bound)
 
         # For each defined magic method, define a wrapper that censors params and
         # switches context

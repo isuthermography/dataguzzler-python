@@ -1,28 +1,22 @@
-import sys
-import os
 
-from dataguzzler_python import dgpy
-from dataguzzler_python.dgpy import u
-from dataguzzler_python.dgpy import check_dgpython
-
-check_dgpython()
+include("dgpy_startup.dpi") # If you get a NameError here, be sure you are executing this file with dataguzzler-python
 
 
 
 class DemoClass(object,metaclass=dgpy.Module):
     def __init__(self,modulename): # modulename MUST be first parameter
         print("Init the hardware")
-        assert(dgpy.CurContext() is self)
+        assert(dgpy.CurContext()[0] is self)
         pass
 
     def write(self):
         print("Write to the hardware")
-        assert(dgpy.CurContext() is self)
+        assert(dgpy.CurContext()[0] is self)
         pass
 
     def read(self):
         print("read from the hardware")
-        assert(dgpy.CurContext() is self)
+        assert(dgpy.CurContext()[0] is self)
         pass
 
     #def __repr__(self):
@@ -37,3 +31,8 @@ class Junk(object):
     pass
 
 JunkObj=Junk()
+
+from dataguzzler_python import password_auth,password_acct
+
+include("network_access.dpi",
+        auth=password_auth(password_acct("dgp","xyzzy")))

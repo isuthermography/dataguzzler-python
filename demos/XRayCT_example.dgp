@@ -1,30 +1,17 @@
-import sys
-import os
-import numpy as np
+include("dgpy_startup.dpi") # If you get a NameError here, be sure you are executing this file with dataguzzler-python
+
+include("dgpy_dgold.dpi")
 
 from limatix.dc_value import numericunitsvalue as nuv
 
-from dataguzzler_python import pydg
-from dataguzzler_python.dgpy import check_dgpython
 
-check_dgpython()
-
-
-from dataguzzler_python import dgold
-from dataguzzler_python.dgold import cmd as dgcmd
-from dataguzzler_python.dgold import DataguzzlerError
 
 
 uA = nuv("1 microamp")
 kV = nuv("1 kilovolt")
 
-dgold.library("wfmstore.so")
-dgold.library("metadata.so")
-dgold.library("dio8bit.so")
-dgold.library("dglink.so")
-dgold.library("fftwlink.so"," nthreads=4\n fftw_estimate\n")
 
-from dataguzzler_python import savewfm  # must be AFTER wfmstore.so library is loaded 
+from dataguzzler_python import savewfm  # must be AFTER wfmstore.so library is loaded by dgpy_dgold.dpi
 
 sys.path.append('/usr/local/src/dataguzzler-python/demos')
 import kevextube
@@ -247,3 +234,10 @@ MATH.cmd("def calibimg=div(diffimg,floodimg)")
 MATH.cmd("def CTcube=accum(CTangle,360)")
 
 capturedark(wait=False)
+
+
+from dataguzzler_python import password_auth,password_acct
+
+include("network_access.dpi",
+        auth=password_auth(password_acct("dgp","xyzzy")))
+

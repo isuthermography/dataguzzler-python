@@ -1,0 +1,22 @@
+"""dataguzzler-python include for enabling network access. 
+This should generally be included at the __bottom__ of your
+.dgp configuration script, so that network access is not 
+enabled until configuration is complete """
+
+from dataguzzler_python.mainloop import start_tcp_server
+
+bind_address = "127.0.0.1"  # use bind_address="" to bind to all network interfaces
+
+auth=None
+
+# Open Python link
+dgpy_port = 1651
+start_tcp_server(bind_address,dgpy_port,auth=auth)
+
+
+# Open dgold link if module is loaded
+if "dataguzzler_python.dgold" in sys.modules:
+    dgold_port = 1649
+    start_tcp_server(bind_address,dgold_port,connbuilder=lambda **kwargs: OldDGConn(**kwargs))
+    pass
+

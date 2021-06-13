@@ -1,32 +1,6 @@
-import sys
-import os
+include("dgpy_startup.dpi") # If you get a NameError here, be sure you are executing this file with dataguzzler-python
 
-from dataguzzler_python import dgpy
-from dataguzzler_python.dgpy import u
-from dataguzzler_python.dgpy import check_dgpython
-
-check_dgpython()
-
-from dataguzzler_python import dgold
-from dataguzzler_python.dgold import cmd as dgcmd
-
-
-dgold.library("wfmstore.so")
-dgold.library("metadata.so")
-dgold.library("dio8bit.so")
-dgold.library("dglink.so")
-dgold.library("fftwlink.so"," nthreads=4\n fftw_estimate\n")
-
-TIME=dgold.DGModule("TIME","posixtime.so","")
-WFM=dgold.DGModule("WFM","wfmio.so","")
-
-AUTH=dgold.DGModule("AUTH","auth.so",r"""
-        AuthCode(localhost) = "xyzzy"
-	AuthCode(127.0.0.1/32) = "xyzzy"
-	AuthCode([::1]/128) = "xyzzy"
-""")
-
-
+include("dgpy_dgold.dpi")
 
 class DemoClass(object,metaclass=dgpy.Module):
     def __init__(self,modulename): # modulename MUST be first parameter
@@ -56,3 +30,9 @@ class Junk(object):
     pass
 
 JunkObj=Junk()
+
+
+from dataguzzler_python import password_auth,password_acct
+
+include("network_access.dpi",
+        auth=password_auth(password_acct("dgp","xyzzy")))

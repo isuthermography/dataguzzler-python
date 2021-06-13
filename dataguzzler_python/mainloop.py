@@ -9,22 +9,20 @@ import asyncio
 from asyncio import StreamReader,StreamReaderProtocol
 from asyncio.coroutines import coroutine
 import copy
+import ctypes
+import numbers
+
+import numpy as np
+
+from .remoteproxy import remoteproxy
 
 from .dgpy import InitThreadContext
 from .dgpy import PushThreadContext,PopThreadContext
-
-import ctypes
-
-# First import of dgold requires dlopenflags with RTLD_GLOBAL
-# or it won't export its symbols to libraries/modules
-oldflags=sys.getdlopenflags()
-sys.setdlopenflags(oldflags | ctypes.RTLD_GLOBAL)
-from .dgold import rpc_async,rpc_authenticated
-sys.setdlopenflags(oldflags)
+from .conn import PyDGConn,OldDGConn
 
 nextconnid=0  # global... only accessible from main server thread
 nextconnidlock=Lock()
-Conns={} # Dictionary by connid
+Conns={} # Dictionary by connid... includes TCP connections and similar but not sub-connections within asynchronous TCP links
 
 
 
@@ -48,256 +46,7 @@ Conns={} # Dictionary by connid
 
 
 
-def start_response(writer,returncode,length):
-    returncode=int(returncode)
-    
-    assert(returncode >= 0 and returncode <= 999)
-    writer.write(("%3.3d %12.12d " % (returncode,length+2)).encode('utf-8')) # length+2 accounts for trailing
-    pass
-    
-def render_response(rc,ret,bt):
-    if bt is None:
-        if isinstance(ret,str) and not "\"\"\"" in ret:
-            return ("\"\"\""+ret+"\"\"\"").encode('utf-8')
-        return repr(ret).encode('utf-8')
-    else:
-        return repr((ret,bt)).encode('utf-8')
-    pass
-
-def write_response(writer,returncode,retbytes):
-    start_response(writer,returncode,len(retbytes))
-    writer.write(retbytes)
-    writer.write(b"\r\n")
-    pass
-
-
-def process_line(globaldecls,localdict,linestr):
-    empty= (linestr=="")
-    returncode=200
-    
-    import dgpy_config
-    
-    try:
-        lineast=ast.parse(linestr)
-
-        if len(lineast.body) < 1:
-            return (200,None,None)
-        
-        if len(lineast.body)==1 and lineast.body[0].__class__.__name__=="Global":
-            # Defining a variable as global
-            globaldecls.append(lineast.body[0])
-            pass
-        
-        # Insert globaldecls at start of lineast.body
-        # (this slicing trick is like the insert-at-start
-        # equivalent of list.extend)
-        lineast.body[0:0]=globaldecls
-        
-        # extract last element of tree
-        result_ast=lineast.body[-1]
-        if result_ast.__class__.__name__=="Expr":
-            # If we end with an expression, assign the expression
-            # replace last element with assignment of __dgpy_resulttemp
-            lineast.body[-1] = ast.Assign(targets=[ast.Name(id="__dgpy_resulttemp",ctx=ast.Store(),lineno=result_ast.lineno,col_offset=0)],value=result_ast.value,lineno=result_ast.lineno,col_offset=0)
-            
-            pass
-        elif result_ast.__class__.__name__=="Assign":
-            # If we end with an assignment, add additional assignment
-            # to assign value of evaluated assignment to __dgpy_resulttemp
-            targetval=copy.deepcopy(result_ast.targets[0])
-            targetval.ctx=ast.Load() 
-            lineast.body.append(ast.Assign(targets=[ast.Name(id="__dgpy_resulttemp",ctx=ast.Store(),lineno=result_ast.lineno,col_offset=0)],value=targetval,lineno=result_ast.lineno,col_offset=0))
-            pass
-        
-        localdict["__dgpy_resulttemp"]=None
-
-        # !!! Should wrap dgpyc_config.__dict__ to do context conversions (dgpy.censor) !!!
-        #sys.stderr.write("Exec!\n")
-        #sys.stderr.flush()
-        exec(compile(lineast,"<interactive>","exec"),dgpy_config.__dict__,localdict)
-        #sys.stderr.write("Exec finished!\n")
-        #sys.stderr.flush()
-
-        ret=localdict["__dgpy_resulttemp"]
-        del localdict["__dgpy_resulttemp"]
-
-        localdict["__dgpy_result"]=ret # Leave copy for end-user
-        bt=None
-
-        pass
-    except Exception as e:
-        ret=e
-        returncode=500
-        localdict["__dgpy_last_exc_info"]=sys.exc_info()
-        # Leave copy for end-user
-        bt=traceback.format_exc()
-        pass
-    return (returncode,ret,bt)
-
-class PyDGConn(object):
-    clientsocket=None
-    address=None
-    connid=None
-    loop=None
-    thread=None
-    _dgpy_contextlock=None
-
-    def __init__(self,**kwargs):
-        for arg in kwargs:
-            if not hasattr(self,arg):
-                raise ValueError("Unknown attribute: %s" % (arg))
-            setattr(self,arg,kwargs[arg])
-            pass
-        pass
-
-    def start(self):
-        self.thread=Thread(target=self.threadcode,daemon=True)
-        self.thread.start()
-        pass
-    
-    @asyncio.coroutine
-    def ConnIO(self,reader,writer):
-        #sys.stderr.write("ConnIO()\n")
-        empty=False
-
-        localdict={} # Store for local variables
-        globaldecls=[] # list of AST global decls
-        
-        while not empty:
-            line = yield from reader.readline()
-
-            (returncode,ret,bt)=process_line(globaldecls,localdict,line.decode('utf-8'))
-            write_response(writer,returncode,render_response(returncode,ret,bt))
-            pass
-        writer.close()
-        self.loop.stop()
-        pass
-
-    
-    def threadcode(self):
-        InitThreadContext(self,"PyDGConn_0x%x" % (id(self)))
-        PushThreadContext(self)
-        
-        self.loop=asyncio.new_event_loop()
-        self.loop.set_debug(True)
-        
-
-        def ProtocolFactory():
-            #sys.stderr.write("ProtocolFactory()\n")
-            reader=StreamReader(limit=asyncio.streams._DEFAULT_LIMIT,loop=self.loop)
-            protocol=StreamReaderProtocol(reader,self.ConnIO,loop=self.loop)
-            return protocol
-        # WARNING: _accept_connection2 is Python asyncio internal and non-documented
-        extra={"peername": self.address}
-        #sys.stderr.write("accept_connection2()\n")
-        accept=self.loop._accept_connection2(ProtocolFactory,self.clientsocket,extra,sslcontext=None,server=None)
-
-        #sys.stderr.write("create_task()\n")
-        self.loop.create_task(accept)
-        
-        #sys.stderr.write("run_forever()\n")
-        #import pdb
-        #pdb.set_trace()
-        self.loop.run_forever()
-        #sys.stderr.write("close()\n")
-        self.loop.close()
-        pass
-    
-    pass
-    
-
-class OldDGConn(object):
-    clientsocket=None
-    address=None
-    connid=None
-    loop=None
-    thread=None
-    _dgpy_contextlock=None
-    _dgpy_contextname=None
-
-    def __init__(self,**kwargs):
-        for arg in kwargs:
-            if not hasattr(self,arg):
-                raise ValueError("Unknown attribute: %s" % (arg))
-            setattr(self,arg,kwargs[arg])
-            pass
-        pass
-
-    def start(self):
-        self.thread=Thread(target=self.threadcode,daemon=True)
-        self.thread.start()
-        pass
-    
-    @asyncio.coroutine
-    def ConnIO(self,reader,writer):
-        #sys.stderr.write("ConnIO()\n")
-        empty=False
-
-        localdict={} # Store for local variables
-        globaldecls=[] # list of AST global decls
-        
-        while not empty:
-            line = yield from reader.readline()
-            empty= (line==b"")
-            returncode=200
-
-            if not rpc_authenticated(self):
-                # Limit access to single command to AUTH module
-                line=b"AUTH:"+line.split(b';')[0].strip()
-                pass
-            try:
-                (retval,retbytes)=rpc_async(self,line.strip())
-                pass
-            except Exception as e:
-                retbytes=str(e).encode('utf-8')
-                returncode=500
-                pass
-
-            write_response(writer,returncode,retbytes)
-            pass
-        writer.close()
-        self.loop.stop()
-        pass
-
-
-    
-    def threadcode(self):
-        InitThreadContext(self,"OldDGConn_0x%x" % (id(self)))
-        PushThreadContext(self)
-        
-        self.loop=asyncio.new_event_loop()
-        # self.loop.set_debug(True)
-        
-
-        def ProtocolFactory():
-            #sys.stderr.write("ProtocolFactory()\n")
-            #asyncio.streams._DEFAULT_LIMIT
-            # WARNING: Hardwired limit here prevents loading
-            # huge waveforms with dg_upload() or similar!
-            reader=StreamReader(limit=10e6,loop=self.loop)
-            protocol=StreamReaderProtocol(reader,self.ConnIO,loop=self.loop)
-            return protocol
-        # WARNING: _accept_connection2 is Python asyncio internal and non-documented
-        extra={"peername": self.address}
-        #sys.stderr.write("accept_connection2()\n")
-        accept=self.loop._accept_connection2(ProtocolFactory,self.clientsocket,extra,sslcontext=None,server=None)
-
-        #sys.stderr.write("create_task()\n")
-        self.loop.create_task(accept)
-        
-        #sys.stderr.write("run_forever()\n")
-        #import pdb
-        #pdb.set_trace()
-        self.loop.run_forever()
-        #sys.stderr.write("close()\n")
-        self.loop.close()
-        pass
-    
-    pass
-
-
-
-def tcp_server(hostname,port,connbuilder=lambda **kwargs: PyDGConn(**kwargs)):
+def tcp_server(hostname,port,connbuilder=lambda **kwargs: PyDGConn(**kwargs),auth=None):
     global nextconnid,nextconnidlock,Conns
     serversocket=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
     serversocket.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
@@ -317,7 +66,8 @@ def tcp_server(hostname,port,connbuilder=lambda **kwargs: PyDGConn(**kwargs)):
         
         Conn=connbuilder(clientsocket=clientsocket,
                          address=address,
-                         connid=connid)
+                         connid=connid,
+                         auth=auth)
         Conns[connid]=Conn
         
         Conn.start()

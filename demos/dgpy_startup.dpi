@@ -1,0 +1,25 @@
+"""This dataguzzler-python include file performs basic imports
+and runs check_dgpython to make sure the config file is being run
+within the dataguzzler-python context"""
+
+global sys
+global os
+global np
+
+import sys
+import os
+import numpy as np
+
+global dgpy
+global u
+from dataguzzler_python import dgpy
+from dataguzzler_python.dgpy import u
+
+
+## Generate error if this is run outside dataguzzler-python
+#from dataguzzler_python.dgpy import check_dgpython
+#check_dgpython()
+
+global subproc
+from dataguzzler_python.subproc import subproc
+

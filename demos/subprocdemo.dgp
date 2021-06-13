@@ -1,0 +1,86 @@
+
+include("dgpy_startup.dpi") # If you get a NameError here, be sure you are executing this file with dataguzzler-python
+
+
+SubProc = subproc.from_immediate("SubProc",r"""
+include("dgpy_startup.dpi")
+
+class SubProcClass(object,metaclass=dgpy.Module):
+    def __init__(self,modulename): # modulename MUST be first parameter
+        print("Init the hardware (sub process)")
+        assert(dgpy.CurContext()[0] is self)
+        pass
+
+    def write(self):
+        print("Write to the hardware (sub process)")
+        assert(dgpy.CurContext()[0] is self)
+        pass
+
+    def read(self):
+        print("read from the hardware (sub process)")
+        assert(dgpy.CurContext()[0] is self)
+        pass
+
+    def triggerparent(self):
+        parent.MainProcObj.triggeredwrite()
+        pass
+
+    def triggerparenterror(self):
+        parent.MainProcObj.triggerederror()
+        pass
+
+    #def __repr__(self):
+    #    return "DemoClass repr!"
+
+    pass
+
+SubProcObj=SubProcClass("SubClass module 1")
+
+
+""",debug=False)
+
+
+
+class MainProcClass(object,metaclass=dgpy.Module):
+    def __init__(self,modulename): # modulename MUST be first parameter
+        print("Init the hardware (main process)")
+        assert(dgpy.CurContext()[0] is self)
+        pass
+
+    def write(self):
+        print("Write to the hardware (main process)")
+        assert(dgpy.CurContext()[0] is self)
+        pass
+
+    def triggeredwrite(self):
+        print("Write to the hardware (main process, triggered by subprocess)")
+        assert(dgpy.CurContext()[0] is self)
+        pass
+
+    def triggerederror(self):
+        print("Raise an exception (main process, triggered by subprocess)")
+        assert(dgpy.CurContext()[2] is self)
+        pass
+
+    def read(self):
+        print("read from the hardware (main process)")
+        assert(dgpy.CurContext()[0] is self)
+        pass
+
+    #def __repr__(self):
+    #    return "DemoClass repr!"
+
+    pass
+
+MainProcObj=MainProcClass("MainProc module 1")
+
+#import time
+#time.sleep(5)
+SubProc.SubProcObj.write()
+SubProc.SubProcObj.triggerparent()
+
+
+from dataguzzler_python import password_auth,password_acct
+
+include("network_access.dpi",
+        auth=password_auth(password_acct("dgp","xyzzy")))

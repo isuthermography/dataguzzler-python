@@ -1,0 +1,6 @@
+__pycache__
+*~
+*.bak
+build
+dist
+dataguzzler_python.egg-info

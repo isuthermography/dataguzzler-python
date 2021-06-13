@@ -1,0 +1,42 @@
+"""This dataguzzler-python include file loads the basic and essential dgold libraries/modules"""
+
+
+# First import of dgold requires dlopenflags with RTLD_GLOBAL
+# or it won't export its symbols to libraries/modules
+
+import ctypes
+
+oldflags=sys.getdlopenflags()
+sys.setdlopenflags(oldflags | ctypes.RTLD_GLOBAL)
+from dataguzzler_python import dgold
+sys.setdlopenflags(oldflags)
+
+
+# Publishing names to global namespace from an
+# include file requires the "global" directive
+global dgcmd
+global DataguzzlerError
+from dataguzzler_python.dgold import cmd as dgcmd
+from dataguzzler_python.dgold import DataguzzlerError
+
+
+dgold.library("wfmstore.so")
+dgold.library("metadata.so")
+dgold.library("dio8bit.so")
+dgold.library("dglink.so")
+dgold.library("fftwlink.so"," nthreads=4\n fftw_estimate\n")
+
+global TIME
+TIME=dgold.DGModule("TIME","posixtime.so","")
+
+global WFM
+WFM=dgold.DGModule("WFM","wfmio.so","")
+
+global AUTH
+AUTH=dgold.DGModule("AUTH","auth.so",r"""
+        AuthCode(localhost) = "xyzzy"
+	AuthCode(127.0.0.1/32) = "xyzzy"
+	AuthCode([::1]/128) = "xyzzy"
+""")
+
+
