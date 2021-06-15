@@ -1,0 +1,20 @@
+
+include("dgpy_startup.dpi") # If you get a NameError here, be sure you are executing this file with dataguzzler-python
+
+include("serial.dpi")
+include("pint.dpi")
+
+from pololu_rs232servocontroller import pololu_rs232servocontroller
+from servoshutter import servoshutter
+
+port = find_serial_port("A700eEMQ")
+servocont = pololu_rs232servocontroller("servocont",port)
+
+shutter = servoshutter("shutter",servocont.servos[0],servocont.servos[1])
+
+
+
+from dataguzzler_python import password_auth,password_acct
+
+include("network_access.dpi",
+        auth=password_auth(password_acct("dgp","xyzzy")))

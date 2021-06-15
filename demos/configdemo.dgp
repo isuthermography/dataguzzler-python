@@ -24,7 +24,7 @@ class DemoClass(object,metaclass=dgpy.Module):
 
     pass
 
-Demo=DemoClass("DemoClass module 1")
+Demo=DemoClass("Demo")
 
 
 class Junk(object):

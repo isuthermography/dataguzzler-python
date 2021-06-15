@@ -11,9 +11,7 @@ import os
 import numpy as np
 
 global dgpy
-global u
 from dataguzzler_python import dgpy
-from dataguzzler_python.dgpy import u
 
 
 ## Generate error if this is run outside dataguzzler-python
