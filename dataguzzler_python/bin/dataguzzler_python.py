@@ -7,6 +7,7 @@ import posixpath
 import multiprocessing
 from urllib.request import url2pathname
 import threading
+from threading import Thread
 import traceback
 import atexit
 import ast
@@ -16,7 +17,7 @@ import inspect
 import readline
 import rlcompleter
 
-from ..mainloop import start_tcp_server
+from ..mainloop import start_tcp_server,console_input_processor
 from ..mainloop import PyDGConn,OldDGConn
 from ..conn import process_line
 from ..conn import write_response,render_response
@@ -25,6 +26,8 @@ from ..dgpy import SimpleContext
 from ..dgpy import InitThreadContext
 from ..dgpy import PushThreadContext,PopThreadContext
 from ..configfile import DGPyConfigFileLoader
+from ..main_thread import main_thread_run
+
 import dataguzzler_python.dgpy as dgpy
 
 dgpy_config=None
@@ -74,89 +77,82 @@ def main(args=None):
         pass
 
 
+    localvars={}
+    
     ConfigContext=SimpleContext()
     
     InitThreadContext(ConfigContext,"dgpy_config") # Allow to run stuff from main thread
     PushThreadContext(ConfigContext)
-    
-    configfile=args[1]
-
-    kwargs={}
-    for arg in args[2:]:
-        # handle named keyword parameters
-        (param_typestr,valuestr) = arg.split("=",1)
-        (param,typestr) = param_typestr.split(":")
+    try: 
+        configfile=args[1]
         
-        if typestr=="float":
-            kwargs[param]=float(valuestr)
+        kwargs={}
+        for arg in args[2:]:
+            # handle named keyword parameters
+            (param_typestr,valuestr) = arg.split("=",1)
+            (param,typestr) = param_typestr.split(":")
+            
+            if typestr=="float":
+                kwargs[param]=float(valuestr)
+                pass
+            elif typestr=="int":
+                kwargs[param]=int(valuestr)
+                pass
+            elif typestr=="str":
+                kwargs[param]=valuestr
+                pass
+            else:
+                raise ValueError("Unknown type string: \"%s\"" % (typestr))
             pass
-        elif typestr=="int":
-            kwargs[param]=int(valuestr)
-            pass
-        elif typestr=="str":
-            kwargs[param]=valuestr
-            pass
-        else:
-            raise ValueError("Unknown type string: \"%s\"" % (typestr))
+        
+        ##### (global variables will be in dgpy_config.__dict__) 
+        dgpy.dgpy_running=True
+        
+        # define config file... Use custom loader so we can insert "include" function into default dictionary
+        sourcefh = open(configfile)
+        sourcetext = sourcefh.read()
+        sourcefh.close()
+        
+        spec = importlib.util.spec_from_loader("dgpy_config", #configfile,
+                                               loader=DGPyConfigFileLoader("dgpy_config",configfile,sourcetext,os.path.split(configfile)[0],None,kwargs))
+        
+        # load config file
+        dgpy_config = importlib.util.module_from_spec(spec)
+        sys.modules["dgpy_config"]=dgpy_config
+        
+        # run config file 
+        spec.loader.exec_module(dgpy_config)
+        pass
+    except:
+        sys.stderr.write("Exception running config file. Dropping into debugger...\n")
+
+        localvars["__dgpy_last_exc_info"]=sys.exc_info()
+
+        traceback.print_exc()
+
+        sys.stderr.write("\nRun dgpy.pm() to debug\n")
+
+        #import pdb
+        #pdb.post_mortem()
         pass
     
-    # Dictionary of local variables
-    # (global variables will be in dgpy_config.__dict__) 
-    localdict={}
-    dgpy.dgpy_running=True
-
-    # define config file... Use custom loader so we can insert "include" function into default dictionary
-    sourcefh = open(configfile)
-    sourcetext = sourcefh.read()
-    sourcefh.close()
-    
-    spec = importlib.util.spec_from_loader("dgpy_config", #configfile,
-                                           loader=DGPyConfigFileLoader("dgpy_config",configfile,sourcetext,os.path.split(configfile)[0],None,kwargs))
-    
-    # load config file
-    dgpy_config = importlib.util.module_from_spec(spec)
-    sys.modules["dgpy_config"]=dgpy_config
-    
-    # run config file 
-    spec.loader.exec_module(dgpy_config)
-
-    PopThreadContext()
-
+    finally:
+        
+        PopThreadContext()
+        pass
 
     # TCP servers must now eb started from the config file
     #tcp_thread=start_tcp_server("localhost",1651)
     #old_dg_thread=start_tcp_server("localhost",1649,connbuilder=lambda **kwargs: OldDGConn(**kwargs))
 
     
-    MainContext=SimpleContext()
-    InitThreadContext(MainContext,"__main__") # Allow to run stuff from main thread
-    PushThreadContext(MainContext)
+    #MainContext=SimpleContext()
+    #InitThreadContext(MainContext,"__main__") # Allow to run stuff from main thread
+    #PushThreadContext(MainContext)
+    console_input_thread=Thread(target=console_input_processor,args=(dgpy_config,"console_input",localvars,rlcompleter),daemon=False)
+    console_input_thread.start()
 
-    globaldecls=[]
-
-    readline.set_completer(rlcompleter.Completer(dgpy_config.__dict__).complete)
-    
-    while(True):
-        try:
-            InStr=input("dgpy> ")
-            pass
-        except EOFError:
-            # main terminal disconnected: exit
-            #PopThreadContext()
-            #sys.stderr.write("Attempting to exit; tid=%d!\n" % (threading.get_ident()))
-            sys.exit(0)
-            pass
-
-        try: 
-            (rc,ret,bt)=process_line(globaldecls,localdict,InStr)
-            write_response(sys.stdout.buffer,rc,render_response(rc,ret,bt))
-            pass
-        except Exception as e:
-            sys.stderr.write("Internal error in line processing\n")
-            print(e)
-            traceback.print_exc()
-            pass
-        pass
-    
+    main_thread_run() # Let main_thread module take over the main thread
     
     pass
+

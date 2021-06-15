@@ -22,9 +22,8 @@ from .remoteproxy import remoteproxy
 #    sys.stderr.write("dgpy: limatix not available; dc_value units will not be supported\n")
 #    pass
 
-import pint # units library
+import pint # units library... so we can use isinstance() below. 
 
-u = pint.UnitRegistry()  # shared registry
 
 junk=5
 method_wrapper_type=junk.__str__.__class__
@@ -156,6 +155,7 @@ def InContext(context):
 class SimpleContext(object):
     _dgpy_contextlock=None
     _dgpy_contextname=None
+    _dgpy_compatible=None
     pass
 
 
@@ -170,6 +170,9 @@ class OpaqueWrapper(object):
         #sys.stderr.flush()
         pass
 
+    def forceunwrap(self):
+        return self._wrappedobj
+    
     def attemptunwrap(self,targetcontext=None):
         targetcontext_compatible = None
         if targetcontext is None:
@@ -186,6 +189,15 @@ class OpaqueWrapper(object):
         pass
     pass
 
+def RunUnprotected(routine,*args,**kwargs):
+    PushThreadContext(None)
+    try:
+        ret = routine(*args,**kwargs)
+        pass
+    finally:
+        PopThreadContext()
+        pass
+    return ret
 
 def RunInContext(context,routine,routinename,args,kwargs):
     #sys.stderr.write("RunInContext(%s,%s,%s,%s)\n" % (object.__getattribute__(context,"_dgpy_contextname"),str(routine),routinename,str(routine.__code__)))

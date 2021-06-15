@@ -18,6 +18,7 @@ from .dgpy import SimpleContext,InitThreadContext,PushThreadContext,PopThreadCon
 from .dgpy import dgpy_nowrap
 from .async_conn import PyDGAsyncConn
 from .configfile import DGPyConfigFileLoader
+from .main_thread import main_thread_run
 
 def determine_contextdir():
     """Inspect the caller's caller's stack frame to find the 
@@ -273,11 +274,9 @@ def subprocess_code(contextdir,dgpfilename,dgpcontent,child_conn_receiver, child
     #sys.stderr.write("subproc dgpy_config dir(): %s\n" % (dir(dgpy_config)))
     #sys.stderr.write("subproc dgpy_config keys(): %s\n" % (list(dgpy_config.__dict__.keys())))
     #sys.stderr.write("subproc dgpy_config ID: %d\n" % (id(dgpy_config)))
-    # Main thread of subprocess has nothing left to do.
-    # Let's just sit here forever
-    while True:
-        time.sleep(3600)
-        pass
+    # Main thread of subprocess has nothing left to do except
+    # be available in case somebody wants to run an event loop here
+    main_thread_run() 
     
     pass
 

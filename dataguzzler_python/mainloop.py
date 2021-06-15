@@ -11,14 +11,16 @@ from asyncio.coroutines import coroutine
 import copy
 import ctypes
 import numbers
+import readline
 
 import numpy as np
 
 from .remoteproxy import remoteproxy
 
-from .dgpy import InitThreadContext
+from .dgpy import SimpleContext,InitThreadContext,InitThread,InitContext
 from .dgpy import PushThreadContext,PopThreadContext
 from .conn import PyDGConn,OldDGConn
+from .conn import process_line,render_response,write_response
 
 nextconnid=0  # global... only accessible from main server thread
 nextconnidlock=Lock()
@@ -81,5 +83,50 @@ def start_tcp_server(hostname,port,**kwargs):
     thread=Thread(target=tcp_server,args=(hostname,port),kwargs=kwargs,daemon=True)
     thread.start()
     return thread
+
+
+def console_input_processor(dgpy_config,contextname,localvars,rlcompleter):
+    """This is meant to be run from a new thread. """
+    globaldecls=[]
+
+    # Dictionary of local variables
+    localdict={}
+    localdict.update(localvars)
+
+    readline.set_completer(rlcompleter.Completer(dgpy_config.__dict__).complete)
+    
+    InitThread() # This is a new thread
+    InputContext=SimpleContext()
+    InitContext(InputContext,contextname) # Allow to run stuff from main thread
+    PushThreadContext(InputContext)
+    try:
+        while(True):
+            try:
+                InStr=input("dgpy> ")
+                pass
+            except EOFError:
+                # main terminal disconnected: exit
+                #PopThreadContext()
+                #sys.stderr.write("Attempting to exit; tid=%d!\n" % (threading.get_ident()))
+                sys.exit(0)
+                pass
+            
+            try:
+                # Note: process_line() modifies globaldecls and localdict
+                
+                (rc,ret,bt)=process_line(globaldecls,localdict,InStr)
+                write_response(sys.stdout.buffer,rc,render_response(rc,ret,bt))
+                pass
+            except Exception as e:
+                sys.stderr.write("Internal error in line processing\n")
+                print(e)
+                traceback.print_exc()
+                pass
+            pass
+        pass
+    finally:
+        PopThreadContext()
+        pass
+    pass
 
 

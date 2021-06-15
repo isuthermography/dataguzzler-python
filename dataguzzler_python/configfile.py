@@ -63,6 +63,8 @@ def load_source_overriding_parameters(sourcepath,sourcetext,paramdict_keys):
         pass
     
     sourceast=ast.parse(sourcetext,filename=sourcepath)
+
+    globalparams=set([])
     
     for paramkey in paramdict_keys:
         gotassigns=0
@@ -77,13 +79,17 @@ def load_source_overriding_parameters(sourcepath,sourcetext,paramdict_keys):
                     gotassigns+=1
                     continue  # bypass cnt increment below
                 pass
+            if entry.__class__.__name__=="Global" and paramkey in entry.names:
+                # This key declared as a global
+                globalparams.add(paramkey)
+                pass
             cnt+=1
             pass
 
         if gotassigns != 1:
             raise ValueError("Overridden parameter %s in %s is not simply assigned exactly once at top level" % (paramkey,sourcepath))
         pass
-    return compile(sourceast,sourcepath,'exec')
+    return (compile(sourceast,sourcepath,'exec'),globalparams)
 
 
 class DGPyConfigFileLoader(importlib.machinery.SourceFileLoader):
@@ -144,14 +150,22 @@ class DGPyConfigFileLoader(importlib.machinery.SourceFileLoader):
             includefh.close()
             #code = compile(includestr,includepath,'exec')
             
-            code = load_source_overriding_parameters(includepath,includetext,kwargs)
-            
+            (code,globalparams) = load_source_overriding_parameters(includepath,includetext,kwargs)
+
+            localkwargs = { varname: kwargs[varname] for varname in kwargs if varname not in globalparams }
+            globalkwargs = { varname: kwargs[varname] for varname in kwargs if varname in globalparams }
+
             # run
             #exec(code,module.__dict__,module.__dict__)
             localvars={}  # NOTE Must declare variables as global in the .dpi for them to be accessible
 
-            localvars.update(kwargs)  # include any explicitly passed parameters
             
+            localvars.update(localkwargs)  # include any explicitly passed local parameters 
+
+            # update global dictionary according to explicitly passed global parameters
+            module.__dict__.update(globalkwargs)
+
+            # Run the include file code
             exec(code,module.__dict__,localvars)
             
             # pop from context stack
@@ -176,11 +190,14 @@ class DGPyConfigFileLoader(importlib.machinery.SourceFileLoader):
         # Insert explicitly passed parameters into dict
         module.__dict__.update(self.paramdict)
 
-        # insert parentmodule into dict if present
+        # insert parentmodule into dict if present (for subproc support)
         if self.parentmodule is not None:
             module.__dict__["parent"]=self.parentmodule
             pass
-        exec(load_source_overriding_parameters(self.path,self.sourcetext,self.paramdict.keys()),module.__dict__,module.__dict__)
+
+        (code,globalparams) = load_source_overriding_parameters(self.path,self.sourcetext,self.paramdict.keys())
+        # We don't care about global declarations here because in the main config file everything is global by default
+        exec(code,module.__dict__,module.__dict__)
         pass
     
         
