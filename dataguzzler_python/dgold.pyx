@@ -144,8 +144,8 @@ def rpc_async(context,bytes cmdbytes):
     return (retval,retbytes)
 
 def _rawcmd(cmdstr):
-    # shorthand for rpc_async(CurContext(),cmdstr.encode('utf-8'))
-    (retval,retbytes)=rpc_async(CurContext(),cmdstr.encode('utf-8'))
+    # shorthand for rpc_async(CurContext()[0],cmdstr.encode('utf-8'))
+    (retval,retbytes)=rpc_async(CurContext()[0],cmdstr.encode('utf-8'))
     return (retval,retbytes.decode('utf-8'))
 
 def dgmainloop():
