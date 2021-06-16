@@ -23,9 +23,10 @@ class _pololu_rs232servo(object):
     controller = None
     _index = None
     _power = None
-    _position = math.nan
+    _position = math.nan # position 0...255
     _speed = None
     _range = 15 # fixed at default
+    _neutral = 1500*ur.us
     def __init__(self,controller,index):
         self.controller=controller
         self._index=index
@@ -73,13 +74,13 @@ class _pololu_rs232servo(object):
     @property
     def position(self):
         # Each integer step in _position represents range*.5 us of pulse width
-        return self._position*self._range*0.5*ur.us
+        return (self._position-127.5)*self._range*0.5*ur.us + self._neutral
     
     @position.setter
     def position(self,pos):
         """Note: commanding a position turns on the servo"""
-
-        self._position=int(round((pos/(self._range*0.5*ur.us)).to(ur.dimensionless).magnitude))        
+        
+        self._position=int(round(((pos-self._neutral)/(self._range*0.5*ur.us)).to(ur.dimensionless).magnitude+127.5))        
         
         if self._position < 0:
             self._position = 0
@@ -105,7 +106,7 @@ class pololu_rs232servocontroller(object,metaclass=dgpy_Module):
     include("pint.dpi")
     from pololu_rs232servocontroller import pololu_rs232servocontroller
     
-    port = find_serial_port("....fixme...")
+    port = find_serial_port("A700eEMQ")
     servocont = pololu_rs232servocontroller("servocont",port)
 
     servocont.servos[0].speed = 250*ur.us/ur.s
@@ -126,7 +127,8 @@ class pololu_rs232servocontroller(object,metaclass=dgpy_Module):
         # desired port in the serial_ports list and pass its 3rd (hwid)
         # field to find_serial_port()
         
-        self.pol=serial.Serial(port,baudrate=9600)
+        #self.pol=serial.Serial(port,baudrate=9600)
+        self.pol=serial.serial_for_url(port,baudrate=9600)
         self.servos=[]
         
         for servonum in range(8): # 0..7

@@ -47,8 +47,8 @@ class servoshutter(metaclass=dgpy_Module):
                  servo2,
                  initial_state = "CLOSED",
                  servo_speed = 500*ur.us/ur.s,
-                 servo_open = 600*ur.us,
-                 servo_closed = 2325*ur.us
+                 servo_open = 843.75*ur.us,
+                 servo_closed = 1706.25*ur.us
                  ):
         self.servo1 = servo1
         self.servo2 = servo2
@@ -104,8 +104,8 @@ class servoshutter(metaclass=dgpy_Module):
         self.desired_state = desired_status
 
         # Move servos
-        self.servo1.posn = desired_posn
-        self.servo2.posn = desired_posn
+        self.servo1.position = desired_posn
+        self.servo2.position = desired_posn
 
         # Mark time when move started
         self._lastchanged=time.monotonic()

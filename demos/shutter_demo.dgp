@@ -8,6 +8,7 @@ from pololu_rs232servocontroller import pololu_rs232servocontroller
 from servoshutter import servoshutter
 
 port = find_serial_port("A700eEMQ")
+#port = "loop://"
 servocont = pololu_rs232servocontroller("servocont",port)
 
 shutter = servoshutter("shutter",servocont.servos[0],servocont.servos[1])
