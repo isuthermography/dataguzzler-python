@@ -5,6 +5,7 @@ import queue
 import atexit
 
 from .dgpy import SimpleContext,InitContext,PushThreadContext,PopThreadContext
+from .mainloop import do_systemexit
 
 main_thread_queue = queue.Queue()
 main_thread_context = SimpleContext()
@@ -43,13 +44,8 @@ def main_thread_run():
             # Exit immediately on Ctrl-C 
             #sys.stderr.write("Immediate exit!\n")
 
-            
             # we need interrupt main thread with hangup signal, because otherwise we get a hang. But for some reason the exitfuncs (writing out readline history) don't get called in that case, so we run them manually
-            atexit._run_exitfuncs()
-            
-            # Need to interrupt the keyboard reader thread
-            os.kill(os.getpid(),signal.SIGHUP)
-            sys.exit(0)
+            do_systemexit()
             pass
 
 
@@ -67,10 +63,7 @@ def main_thread_run():
             # interrupt the keyboard reader thread
             
             # we need interrupt main thread with hangup signal, because otherwise we get a hang. But for some reason the exitfuncs (writing out readline history) don't get called in that case, so we run them manually
-            atexit._run_exitfuncs()
-            
-            os.kill(os.getpid(),signal.SIGHUP)
-            sys.exit(0)
+            do_systemexit()
             pass
         except:
             sys.stderr.write("Exception in main loop thread:\n")

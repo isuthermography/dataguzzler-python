@@ -113,9 +113,18 @@ def main(args=None):
         dgpy.dgpy_running=True
         
         # define config file... Use custom loader so we can insert "include" function into default dictionary
-        sourcefh = open(configfile)
-        sourcetext = sourcefh.read()
-        sourcefh.close()
+        sourcetext=""
+        try:
+            sourcefh = open(configfile)
+            sourcetext = sourcefh.read()
+            sourcefh.close()
+            pass
+        except FileNotFoundError:
+            localvars["__dgpy_last_exc_info"]=sys.exc_info()
+            traceback.print_exc()
+
+            sys.stderr.write("\nRun dgpy.pm() to debug\n")
+            pass
         
         spec = importlib.util.spec_from_loader("dgpy_config", #configfile,
                                                loader=DGPyConfigFileLoader("dgpy_config",configfile,sourcetext,os.path.split(configfile)[0],None,kwargs))

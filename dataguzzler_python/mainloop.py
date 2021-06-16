@@ -88,6 +88,20 @@ def start_tcp_server(hostname,port,**kwargs):
     thread.start()
     return thread
 
+def do_systemexit():
+    #PopThreadContext()
+    #sys.stderr.write("Attempting to exit; tid=%d!\n" % (threading.get_ident()))
+    # we need interrupt main thread with hangup signal, because otherwise we get a hang. But for some reason the exitfuncs (writing out readline history) don't get called in that case, so we run them manually
+    atexit._run_exitfuncs()
+    if os.name=="nt":
+        os.kill(os.getpid(),signal.CTRL_BREAK_EVENT)
+        pass
+    else:
+        os.kill(os.getpid(),signal.SIGHUP)
+        pass
+    
+    sys.exit(0)
+    pass
 
 def console_input_processor(dgpy_config,contextname,localvars,rlcompleter):
     """This is meant to be run from a new thread. """
@@ -110,13 +124,7 @@ def console_input_processor(dgpy_config,contextname,localvars,rlcompleter):
                 pass
             except EOFError:
                 # main terminal disconnected: exit
-                #PopThreadContext()
-                #sys.stderr.write("Attempting to exit; tid=%d!\n" % (threading.get_ident()))
-                # we need interrupt main thread with hangup signal, because otherwise we get a hang. But for some reason the exitfuncs (writing out readline history) don't get called in that case, so we run them manually
-                atexit._run_exitfuncs()
-                os.kill(os.getpid(),signal.SIGHUP)
-
-                sys.exit(0)
+                do_systemexit()
                 pass
             
             try:
@@ -124,6 +132,9 @@ def console_input_processor(dgpy_config,contextname,localvars,rlcompleter):
                 
                 (rc,ret,bt)=process_line(globaldecls,localdict,InStr)
                 write_response(sys.stdout.buffer,rc,render_response(rc,ret,bt))
+                pass
+            except SystemExit:
+                do_systemexit()
                 pass
             except Exception as e:
                 sys.stderr.write("Internal error in line processing\n")
