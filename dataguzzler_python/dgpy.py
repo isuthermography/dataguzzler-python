@@ -147,7 +147,16 @@ class Module(type):
                 return filtered_dir_output
             setattr(cls,"who",who)
             pass
-        
+
+        if not hasattr(cls,"help"):
+            def _help(self):
+                """Convenience method for getting help. OK to override this method"""
+
+                # NOTE: help() code also present OpaqueWrapper.py
+                return help(self)
+            setattr(cls,"help",_help)
+            pass
+
         # Define __getattribute__ method for the dgpy module class
         # Getattribute wraps all attribute accesses (except magic method accesses)
         # to return wrapped objects, including methods that shift context
@@ -158,13 +167,16 @@ class Module(type):
             
             if attrname=="__class__":
                 return object.__getattribute__(self,attrname)
-                
+
+            #sys.stderr.write("Calling ModuleInstance.__getattribute__(,%s)\n" % (attrname))
             try:
                 #attr=object.__getattribute__(self,attrname)
                 #attr=orig_getattribute(self,attrname)
 
                 ### !!!! Should put in a shortcut here so if __getattribute__ isn't overloaded, we just use regular __getattribute__
                 attr=RunInContext(self,orig_getattribute,"__getattribute__",(self,attrname),{})
+                #sys.stderr.write("Ran in context.\n")
+                
                 pass
             except AttributeError:
                 # attribute doesn't exist... do we have a __getattr__ method?

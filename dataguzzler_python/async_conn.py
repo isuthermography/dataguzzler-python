@@ -24,8 +24,8 @@ import pint
 
 from .remoteproxy import remoteproxy
 from . import dgpy
-from .dgpy import InitThreadContext,InitCompatibleThread,InitFreeThread
-from .dgpy import PushThreadContext,PopThreadContext
+from .context import InitContext,InitCompatibleThread,InitFreeThread,InitThread,SimpleContext
+from .context import PushThreadContext,PopThreadContext,FormatCurContext
 from .conn import DGConn
 from .remoteproxy import set_active_remote_link_this_thread
 from .remoteproxy import remoteproxy
@@ -159,8 +159,9 @@ class PyDGAsyncConn(DGConn):
         return retproxy
 
     def get_proxy_if_needed(self,ret):
-        if object.__getattribute__(ret,"__class__").__name__ == "OpaqueWrapper":
-            return self.get_proxy(ret)
+        # ... Proxies __are__ actually needed for OpaqueWrappers
+        #if object.__getattribute__(ret,"__class__").__name__ == "OpaqueWrapper":
+        #    return self.get_proxy(ret)
 
         if object.__getattribute__(ret,"__class__") is remoteproxy:
             # existing proxies don't get reproxied
@@ -246,6 +247,13 @@ class PyDGAsyncConn(DGConn):
         context while waiting
         """
 
+        if self.debug:
+            sys.stderr.write("call_remote_method(%d,%s,...)\n" % (id(obj),methodname))
+            if methodname.find("getattr") >= 0:
+                sys.stderr.write("args=%s\n" % (str(args)))
+                pass
+            pass
+        
         conninfo_writer = self.conninfo.writer
         #from .dgpy import OpaqueWrapper # avoid import loop
         if object.__getattribute__(conninfo_writer,"__class__").__name__=="OpaqueWrapper": #  is OpaqueWrapper:
@@ -351,7 +359,7 @@ class PyDGAsyncConn(DGConn):
 
             # Handle some special cases...
             # __getattribute__ raising AttributeError means that the callback should fallback to __getatttr__
-            if methodname=="__getattribute__" and isinstance(exc,AttributeError):
+            if (methodname=="__getattribute__" or methodname=="__getattr__") and isinstance(exc,AttributeError):
                 raise AttributeError("Remote attribute error %s" % (str(exc)))
             elif methodname=="__next__" and isinstance(exc,StopIteration):
                 # Interator protocol
@@ -583,6 +591,8 @@ class PyDGAsyncConn(DGConn):
             sys.stderr.write("try_method pid %d thread %d str(ob)=%s rgs=%s kwrgs = %s\n" % (os.getpid(),threading.get_ident(),str(ob),str(rgs),str(kwrgs)))
             pass
 
+        exc = None
+
         # Work around problem with looking up types...,
         # hardwiring lookups to object.__getattribute__
         if methname=="__getattribute__" and isinstance(ob,type):
@@ -593,25 +603,38 @@ class PyDGAsyncConn(DGConn):
                 pass
             pass
         else:
-            #sys.stderr.write("Not Overriding; methname=%s; rgs=%s\n" % (methname,str(rgs)))
-            callable = getattr(ob,methname)
+            #sys.stderr.write("Not Overriding; ob=%s(%d); methname=%s; rgs=%s\n" % (str(ob),id(ob),methname,str(rgs)))
+            try:
+                callable = getattr(ob,methname)
+                pass
+            except AttributeError as ex:
+                exc = ex
+                tb_str = traceback.format_exc()
+
+                #sys.stderr.write("getattr AttributeError: %s\n" % (tb_str))
+                pass
             pass
         
         ret = None
-        exc = None
         tb_str = None
-        try:
-            if self.debug:
-                sys.stderr.write("Calling %s with %s and %s\n" % (callable,rgs,kwrgs))
-                #if callable.__name__=="__hash__" and len(rgs)==0:
-                #    raise ValueError("DEBUG!!!")
+        if exc is None:
+            try:
+                if self.debug:
+                    sys.stderr.write("Calling %s with %s and %s\n" % (callable,rgs,kwrgs))
+                    #if callable.__name__=="__hash__" and len(rgs)==0:
+                    #    raise ValueError("DEBUG!!!")
+                    pass
+                
+                ret = callable(*rgs,**kwrgs)
+                #sys.stderr.write("callable=%s\n" % (str(callable)))
+                #sys.stderr.write("CurContext =  %s\n" % (str(FormatCurContext())))
+                #sys.stderr.write("Returning %s\n" % (str(ret)))
                 pass
-            
-            ret = callable(*rgs,**kwrgs)
-            pass
-        except Exception as ex:
-            exc = ex
-            tb_str = traceback.format_exc()
+            except Exception as ex:
+                exc = ex
+                tb_str = traceback.format_exc()
+                #sys.stderr.write("Execution Error: %s\n" % (tb_str))
+                pass
             pass
         
         #self.conninfo.loop.run_coroutine_threadsafe(self.write_method_reply,connection_id,writer,text,binary,ret,exc,tb_str)
@@ -648,10 +671,15 @@ class PyDGAsyncConn(DGConn):
         assert(binary) # Text mode not implemented yet
 
 
+        
         set_active_remote_link_this_thread(self)
         try:
             ret_bytes = pickle.dumps((ret_maybeproxy,exc_maybeproxy,tb_str)) # Increments remote_refcnt in any ProxyObjs.    On the remote side when the proxy is dereferenced, the destructor triggers releaseproxy which will in turn send us an RLP message.
             pass
+        #except pickle.PicklingError:
+        #    sys.stderr.write("ret_maybeproxy=%s\n" % (str(ret_maybeproxy)))
+        #    sys.stderr.write("exc_maybeproxy=%s\n" % (str(exc_maybeproxy)))
+        #    raise
         finally:
             set_active_remote_link_this_thread(None)
             pass
@@ -672,9 +700,20 @@ class PyDGAsyncConn(DGConn):
         #if hasattr(self.conninfo,"_dgpy_contextname"):
         #    InitCompatibleThread(self.conninfo,"_parentprocwriter_%d" % (id(threading.current_thread())))
         #    pass
-        InitFreeThread()
-        asyncio.set_event_loop(evloop)
-        evloop.run_forever()
+
+        InitThread()
+        
+        ThreadContext = SimpleContext()
+        InitContext(ThreadContext,"AsyncThread_evloopid(%d)" % (id(evloop)))
+        PushThreadContext(ThreadContext)
+        try:        
+            asyncio.set_event_loop(evloop)
+            evloop.run_forever()
+            pass
+        finally:
+            PopThreadContext()
+            pass
+        
         evloop.close()
         self.conninfo.loop.call_soon_threadsafe(self.joinsubconn,current_thread())
         pass

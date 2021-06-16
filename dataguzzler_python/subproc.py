@@ -19,6 +19,7 @@ from .dgpy import dgpy_nowrap
 from .async_conn import PyDGAsyncConn
 from .configfile import DGPyConfigFileLoader
 from .main_thread import main_thread_run
+from .help import monkeypatch_visiblename
 
 def determine_contextdir():
     """Inspect the caller's caller's stack frame to find the 
@@ -233,6 +234,10 @@ def subprocess_code(contextdir,dgpfilename,dgpcontent,child_conn_receiver, child
     if debug:
         sys.stderr.write("Subprocess pid=%d\n" % (os.getpid()))
         pass
+
+    # Simplify help() output by removing all the extraneous stuff
+    monkeypatch_visiblename() 
+
     # dgpy initialization
     ConfigContext=SimpleContext()
     

@@ -36,8 +36,8 @@ class servoshutter(metaclass=dgpy_Module):
     servo1 = None
     servo2 = None
     _servo_speed = None
-    servo_open = None
-    servo_closed = None
+    _servo_open = None
+    _servo_closed = None
     _lastchanged = None
     desired_state = None
     _enabled = None
@@ -53,8 +53,8 @@ class servoshutter(metaclass=dgpy_Module):
         self.servo1 = servo1
         self.servo2 = servo2
         self.desired_state = initial_state
-        self.servo_open = servo_open
-        self.servo_closed = servo_closed
+        self._servo_open = servo_open
+        self._servo_closed = servo_closed
         self._servo_speed = servo_speed
         
         self.enabled = False
@@ -67,21 +67,23 @@ class servoshutter(metaclass=dgpy_Module):
 
         pass
 
+
     @property
     def status(self):
+        r"""Command or report status of the shutter: Usually "OPEN" or "CLOSED" """
         if not self.enabled:
             return "DISABLED"
         curtime = time.monotonic()
 
         timedelta = (curtime-self._lastchanged)*ur.s
 
-        if timedelta < (self.servo_closed-self.servo_open)/self._servo_speed:
+        if timedelta < (self._servo_closed-self._servo_open)/self._servo_speed:
             return "MOVING"
 
-        if self.servo1.position == self.servo_open and self.servo2.position == self.servo_open:
+        if self.servo1.position_matches(self._servo_open) and self.servo2.position_matches(self._servo_open):
             return "OPEN"
         
-        if self.servo1.position == self.servo_closed and self.servo2.position == self.servo_closed:
+        if self.servo1.position_matches(self._servo_closed) and self.servo2.position_matches(self._servo_closed):
             return "CLOSED"
         
         return "UNKNOWN"
@@ -89,10 +91,10 @@ class servoshutter(metaclass=dgpy_Module):
     @status.setter
     def status(self,desired_status):
         if desired_status == "OPEN":
-            desired_posn = self.servo_open
+            desired_posn = self._servo_open
             pass
         elif desired_status == "CLOSED":
-            desired_posn = self.servo_closed
+            desired_posn = self._servo_closed
             pass
         else:
             raise ValueError("Invalid shutter status: %s" % (desired_status))
@@ -112,13 +114,14 @@ class servoshutter(metaclass=dgpy_Module):
         pass
 
     def wait(self):
+        """Wait long enough for the last-initiated move to complete"""
         curtime = time.monotonic()
         timedelta = (curtime-self._lastchanged)*ur.s
 
-        if timedelta >= (self.servo_closed-self.servo_open)/self._servo_speed:
+        if timedelta >= (self._servo_closed-self._servo_open)/self._servo_speed:
             return # move complete
 
-        waitsecs = ((self.servo_closed-self.servo_open)/self._servo_speed - timedelta).to(ur.s).magnitude
+        waitsecs = ((self._servo_closed-self._servo_open)/self._servo_speed - timedelta).to(ur.s).magnitude
 
         # Want to do:
         #   time.sleep(waitsecs)

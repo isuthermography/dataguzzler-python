@@ -37,14 +37,22 @@ def censorobj(sourcecontext,destcontext,attrname,obj):
     if sourcecontext is destcontext or (destcontext is not None and sourcecontext is object.__getattribute__(destcontext,"_dgpy_compatible")):
         return obj # nothing to do!
 
-    if object.__getattribute__(obj,"__class__") is remoteproxy:
+    
+    objclass = object.__getattribute__(obj,"__class__")
+    
+    if objclass is remoteproxy:
         # remoteproxies can be passed around freely
         return obj
 
-    if object.__getattribute__(obj,"__class__") is OpaqueWrapper:
+    if objclass is OpaqueWrapper:
         # pre-wrapped object
         return attemptunwrap(obj,destcontext)
-    
+
+    if isinstance(obj,type):
+        # class objects can be passed around freely
+        return obj
+
+
     if isinstance(obj,bool):
         return bool(obj)
 

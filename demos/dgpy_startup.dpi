@@ -18,6 +18,6 @@ from dataguzzler_python import dgpy
 #from dataguzzler_python.dgpy import check_dgpython
 #check_dgpython()
 
-global subproc
-from dataguzzler_python.subproc import subproc
+#global subproc
+#from dataguzzler_python.subproc import subproc
 

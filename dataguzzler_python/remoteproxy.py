@@ -36,7 +36,7 @@ def remoteproxy_dispatch(proxyobj,methodname, *args, **kwargs):
 
     return remote_link.call_remote_method(proxyobj,methodname, args, kwargs)
     
-remoteproxy_nonproxied_attrs=set(["__str__","__reduce_ex__","__reduce__","__del__"])
+remoteproxy_nonproxied_attrs=set(["__getattribute__","__str__","__reduce_ex__","__reduce__","__del__"])
 
 class remoteproxy(object):
     #_remoteproxy_classname=None
@@ -89,7 +89,7 @@ class remoteproxy(object):
         if remote_link is not None:
             conninfo_loop = remote_link.conninfo.loop
             #from .dgpy import OpaqueWrapper # avoid import loop
-            if conninfo_loop.__class__.__name__=="OpaqueWrapper": #  is OpaqueWrapper:
+            if object.__getattribute__(conninfo_loop,"__class__").__name__=="OpaqueWrapper": #  is OpaqueWrapper:
                 # Sometimes self.conninfo is actually a module in which
                 # case we theoretically don't have direct access to its
                 # contents from the execution threads. In this case it is

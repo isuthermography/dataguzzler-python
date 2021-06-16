@@ -2,6 +2,7 @@
 include("dgpy_startup.dpi") # If you get a NameError here, be sure you are executing this file with dataguzzler-python
 
 
+from dataguzzler_python.subproc import subproc
 SubProc = subproc.from_immediate("SubProc",r"""
 include("dgpy_startup.dpi")
 

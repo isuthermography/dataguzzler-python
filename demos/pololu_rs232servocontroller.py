@@ -23,7 +23,7 @@ class _pololu_rs232servo(object):
     controller = None
     _index = None
     _power = None
-    _position = math.nan # position 0...255
+    _position = math.nan # position stored as servo counts 0...255
     _speed = None
     _range = 15 # fixed at default
     _neutral = 1500*ur.us
@@ -34,9 +34,18 @@ class _pololu_rs232servo(object):
         self._power = False
         pass
 
+    def _counts_to_position(self,counts):
+        """Convert integer number programmed into 
+        servo into a "position" in units of microseconds"""
+        return (counts-127.5)*self._range*0.5*ur.us + self._neutral
+
+    def _position_to_counts(self,pos):
+        return int(round(((pos-self._neutral)/(self._range*0.5*ur.us)).to(ur.dimensionless).magnitude+127.5))        
+        
     # Define a propery for the power
     @property
     def power(self):
+        """Command or readout whether this servo is energized (True/False)"""
         return self._power
     
     @power.setter
@@ -53,6 +62,8 @@ class _pololu_rs232servo(object):
     
     @property
     def speed(self):
+        """Command or read-out the programmed rate of pulse-width change, 
+        in microseconds per second."""
         # Each integer in _speed represents 50 us/s pulse width rate
         return self._speed*50*ur.us/ur.s
 
@@ -73,15 +84,15 @@ class _pololu_rs232servo(object):
 
     @property
     def position(self):
+        """Command or read out the pulse width, in microseconds"""
         # Each integer step in _position represents range*.5 us of pulse width
-        return (self._position-127.5)*self._range*0.5*ur.us + self._neutral
+        return self._counts_to_position(self._position)
     
     @position.setter
     def position(self,pos):
         """Note: commanding a position turns on the servo"""
         
-        self._position=int(round(((pos-self._neutral)/(self._range*0.5*ur.us)).to(ur.dimensionless).magnitude+127.5))        
-        
+        self._position=self._position_to_counts(pos)
         if self._position < 0:
             self._position = 0
             pass
@@ -95,11 +106,20 @@ class _pololu_rs232servo(object):
         command=b"\x80\x01\x03%c%c%c" % (self._index,positionhighbyte,positionlowbyte)
         self.controller.pol.write(command)
         pass
-    
+
+    def position_matches(self,pos):
+        """Return whether the current commanded servo position 
+        matches the specified position. Out of range positions
+        will NOT match"""
+        compare_position = self._position_to_counts(pos)
+        return self._position == compare_position
     
 class pololu_rs232servocontroller(object,metaclass=dgpy_Module):
     """This class controls an obsolete Pololu 8-port RS232 
     servo controller https://www.pololu.com/product/727/resources
+
+    It exposes a list of 8 objects representing the individual servos
+    with its .servo attribute
     
     How to use: 
     include("serial.dpi")
@@ -134,7 +154,7 @@ class pololu_rs232servocontroller(object,metaclass=dgpy_Module):
         for servonum in range(8): # 0..7
             self.servos.append(_pololu_rs232servo(self,servonum))
             pass
-        
+
         pass
 
 

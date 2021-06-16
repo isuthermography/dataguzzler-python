@@ -1,4 +1,5 @@
 import sys
+import os
 import threading
 
 from .context import RunInContext,ThreadContext
@@ -38,9 +39,20 @@ def OpaqueWrapper_dispatch(wrapperobj,methodname, *args, **kwargs):
     wrappedobj = object.__getattribute__(wrapperobj,"_wrappedobj")
     originating_context = object.__getattribute__(wrapperobj,"_originating_context")
     
-    return RunInContext(originating_context,lambda *args,**kwargs: object.__getattribute__(wrappedobj,methodname)(*args, **kwargs),methodname,args,kwargs)
+    #return RunInContext(originating_context,lambda *args,**kwargs: object.__getattribute__(wrappedobj,methodname)(*args, **kwargs),methodname,args,kwargs)
+    #sys.stderr.write("methodname=%s; pid=%d\n" % (methodname,os.getpid()))
+    #sys.stderr.write("wrappedobj id = %d\n" % (id(wrappedobj)))
+    #sys.stderr.write("wrappedobject.__class__.__name__=%s\n" % (object.__getattribute__(wrappedobj,"__class__").__name__))
+    #if object.__getattribute__(wrappedobj,"__class__").__name__=="type":
+    #    sys.stderr.write("wrappedobject.__name__=%s\n" % (object.__getattribute__(wrappedobj,"__name__")))
+    #    pass
+    #junk=getattr(wrappedobj,methodname)
+    #sys.stderr.write("getattr complete on %d; len(args)=%d\n" % (id(wrappedobj),len(args)))
+    #sys.stderr.write("str(wrappedobj)=%s\n" % (str(wrappedobj)))
+    #sys.stderr.write("method=%s\n" % (str(junk)))
+    return RunInContext(originating_context,lambda *args,**kwargs: getattr(wrappedobj,methodname)(*args, **kwargs),methodname,args,kwargs)
     
-OpaqueWrapper_nonwrapped_attrs=set(["__str__","__del__","who"])
+OpaqueWrapper_nonwrapped_attrs=set(["__getattribute__","__str__","__del__","who","help"])
 
 class OpaqueWrapper(object):
     _originating_context = None
@@ -56,14 +68,29 @@ class OpaqueWrapper(object):
     
         
     def __getattribute__(self,attrname):
+        #sys.stderr.write("OpaqueWrapper: getattribute %s\n" % (attrname))
         if attrname in OpaqueWrapper_nonwrapped_attrs:
             return object.__getattribute__(self,attrname)
-        #sys.stderr.write("OpaqueWrapper: getattribute %s\n" % (attrname))
         return OpaqueWrapper_dispatch(self,"__getattribute__",attrname)
     
     def __str__(self):
         return "OpaqueWrapper 0x%lx for %s" % (id(self),OpaqueWrapper_dispatch(self,"__str__"))
 
+    def help(self):
+        """Convenience method for getting help. OK to override this method"""
+        # NOTE: help() code also present in dgpy.py/class Module
+        wrappedobj = object.__getattribute__(self,"_wrappedobj")
+        orig_help_method = None
+        try:
+            orig_help_method = getattr(wrappedobj,"help")
+            pass
+        except AttributeError:
+            pass
+
+        if orig_help_method is not None:
+            return OpaqueWrapper_dispatch(self,"help")
+        return help(self)
+        
 
     def who(self):
         """ .who() method; kind of like dir() but removes special methods, methods with underscores, etc. OK to override this in your classes, in which case your method will be called instead"""
@@ -79,7 +106,7 @@ class OpaqueWrapper(object):
             pass
 
         if orig_who_method is not None:
-            return orig_who_method()
+            return OpaqueWrapper_dispatch(self,"who")
 
         dir_output = dir(wrappedobj)
 

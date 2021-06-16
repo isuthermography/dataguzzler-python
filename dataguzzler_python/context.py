@@ -75,6 +75,7 @@ def PopThreadContext():
     
     return context
 
+
 def CurContext():
     ctx = ThreadContext.execution[0]
     compatible = None
@@ -84,6 +85,21 @@ def CurContext():
     
     return (ctx,compatible)
 
+def FormatCurContext():
+    (ctx,compatible) = CurContext()
+
+    res="(%d," % (id(ctx))
+    if ctx is None:
+        res+="None"
+        pass
+    else:
+        res+=object.__getattribute__(ctx,"_dgpy_contextname")
+        pass
+    if compatible is not None:
+        res+=",compatible=%d" % (id(compatible))
+        pass
+    res+=")"
+    return res
 def InContext(context):
     (cur_ctx,cur_compatible) = CurContext()
     if context is cur_ctx or context is cur_compatible:
@@ -125,6 +141,7 @@ def RunInContext(context,routine,routinename,args,kwargs):
     (parentcontext,pc_compatible)=CurContext()
 
     if context is parentcontext or context is pc_compatible or hasattr(routine,"_dgpy_nowrapping"):
+        #sys.stderr.write("No context switch\n")
         # No context switch necessary
         return routine(*args,**kwargs)
 
@@ -153,9 +170,10 @@ def RunInContext(context,routine,routinename,args,kwargs):
     #return future.result()
     PushThreadContext(context)
     try:
-        #sys.stderr.write("routine name:%s \n" % (str(routine)))
+        #sys.stderr.write("routine name:%s in context: %s\n" % (str(routine),FormatCurContext()))
         res=routine(*censoredargs,**censoredkwargs)
         if not hasattr(res,"_dgpy_nowrapping"):
+            #sys.stderr.write("Censoring\n")
             censoredres=censorobj(context,parentcontext,".retval",res)
             pass
         else:

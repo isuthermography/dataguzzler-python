@@ -27,6 +27,7 @@ from ..dgpy import InitThreadContext
 from ..dgpy import PushThreadContext,PopThreadContext
 from ..configfile import DGPyConfigFileLoader
 from ..main_thread import main_thread_run
+from ..help import monkeypatch_visiblename
 
 import dataguzzler_python.dgpy as dgpy
 
@@ -47,6 +48,9 @@ def main(args=None):
         sys.exit(0)
         pass
 
+    # Simplify help() output by removing all the extraneous stuff
+    monkeypatch_visiblename() 
+    
     multiprocessing.set_start_method('spawn') # This is here because it's a good idea. Otherwise subprocesses have the potential to be dodgy because of fork() artifacts and because we have the original dgpy_config module and the subprocess dgpy_config which replaces it after-the-fact in the Python module list. Also anything with hardware linkages could be super dogdy after a fork
     
     # register readline history file and completer
