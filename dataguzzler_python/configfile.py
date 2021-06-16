@@ -10,7 +10,14 @@ import inspect
 
 
 #def whofunc(globalkeys,localkeys):
-def whofunc(mod):
+def whofunc(mod,*args):
+    if len(args) == 1:
+        # Call who method on the argument
+        return args[0].who()
+    elif len(args) > 1:
+        raise ValueError("Too many arguments to who()")
+    
+    # NOTE: who() code also present in dgpy.py/class Module and OpaqueWrapper.py
 
     globalkeys = mod.__dict__.keys()
     
@@ -19,11 +26,16 @@ def whofunc(mod):
 
     localkeys = localvars.keys()
     
+    totallist = list(globalkeys)+list(localkeys)
+
+    filtered_totallist = [ attr for attr in totallist if not attr.startswith("_") and not attr=="who"]
+    filtered_totallist.sort()
+    
+    old_pretty_printing=r""""
     colwidth=16
     termwidth=80
     spacing=1
-    totallist = list(globalkeys)+list(localkeys)
-    
+
     outlist=[ "\n" ]
 
     colpos=0
@@ -49,7 +61,8 @@ def whofunc(mod):
         pos+=1
         pass
     return "".join(outlist)
-
+    """
+    return filtered_totallist
 
 def load_source_overriding_parameters(sourcepath,sourcetext,paramdict_keys):
     """Reads in the given source file. Removes assignments of given
@@ -119,7 +132,7 @@ class DGPyConfigFileLoader(importlib.machinery.SourceFileLoader):
         module.__dict__["__builtins__"]=__builtins__
 
         # add "who()" function
-        module.__dict__["who"] = lambda : whofunc(module) # lambda : whofunc(module.__dict__.keys(),localdict.keys())
+        module.__dict__["who"] = lambda *args: whofunc(module,*args) # lambda : whofunc(module.__dict__.keys(),localdict.keys())
 
         module.__dict__["_contextstack"]=[ os.path.split(self.sourcetext_context)[0] ]
         sys.path.insert(0,module.__dict__["_contextstack"][-1]) # Current context should always be at start of module search path

@@ -1,4 +1,4 @@
-global pint,ur
+global ur
 
 import pint
 ur = pint.UnitRegistry()

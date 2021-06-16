@@ -132,7 +132,21 @@ class Module(type):
             PushThreadContext(newobj) # Set context... released in__call__ below
             return newobj
         setattr(cls,"__new__",__new__)
-        
+
+
+        if not hasattr(cls,"who"):
+            # provide default who() method for class
+            def who(self):
+                """ .who() method; kind of like dir() but removes special methods, methods with underscores, etc. OK to override this in your classes, in which case your method will be called instead"""
+                # NOTE: who() code also present in configfile.py and OpaqueWrapper.py
+                dir_output = dir(self)
+
+                filtered_dir_output = [ attr for attr in dir_output if not attr.startswith("_") and not attr=="who"]
+                filtered_dir_output.sort()
+                
+                return filtered_dir_output
+            setattr(cls,"who",who)
+            pass
         
         # Define __getattribute__ method for the dgpy module class
         # Getattribute wraps all attribute accesses (except magic method accesses)

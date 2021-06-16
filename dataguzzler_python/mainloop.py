@@ -15,6 +15,7 @@ import copy
 import ctypes
 import numbers
 import readline
+import atexit
 
 import numpy as np
 
@@ -111,7 +112,8 @@ def console_input_processor(dgpy_config,contextname,localvars,rlcompleter):
                 # main terminal disconnected: exit
                 #PopThreadContext()
                 #sys.stderr.write("Attempting to exit; tid=%d!\n" % (threading.get_ident()))
-                # interrupt main thread with hangup signal
+                # we need interrupt main thread with hangup signal, because otherwise we get a hang. But for some reason the exitfuncs (writing out readline history) don't get called in that case, so we run them manually
+                atexit._run_exitfuncs()
                 os.kill(os.getpid(),signal.SIGHUP)
 
                 sys.exit(0)

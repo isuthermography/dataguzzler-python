@@ -153,7 +153,7 @@ def RunInContext(context,routine,routinename,args,kwargs):
     #return future.result()
     PushThreadContext(context)
     try:
-        sys.stderr.write("routine name:%s \n" % (str(routine)))
+        #sys.stderr.write("routine name:%s \n" % (str(routine)))
         res=routine(*censoredargs,**censoredkwargs)
         if not hasattr(res,"_dgpy_nowrapping"):
             censoredres=censorobj(context,parentcontext,".retval",res)

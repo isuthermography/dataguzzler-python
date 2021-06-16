@@ -40,7 +40,7 @@ def OpaqueWrapper_dispatch(wrapperobj,methodname, *args, **kwargs):
     
     return RunInContext(originating_context,lambda *args,**kwargs: object.__getattribute__(wrappedobj,methodname)(*args, **kwargs),methodname,args,kwargs)
     
-OpaqueWrapper_nonwrapped_attrs=set(["__str__","__reduce_ex__","__reduce__","__del__"])
+OpaqueWrapper_nonwrapped_attrs=set(["__str__","__del__","who"])
 
 class OpaqueWrapper(object):
     _originating_context = None
@@ -58,14 +58,36 @@ class OpaqueWrapper(object):
     def __getattribute__(self,attrname):
         if attrname in OpaqueWrapper_nonwrapped_attrs:
             return object.__getattribute__(self,attrname)
-        sys.stderr.write("OpaqueWrapper: getattribute %s\n" % (attrname))
+        #sys.stderr.write("OpaqueWrapper: getattribute %s\n" % (attrname))
         return OpaqueWrapper_dispatch(self,"__getattribute__",attrname)
     
     def __str__(self):
         return "OpaqueWrapper 0x%lx for %s" % (id(self),OpaqueWrapper_dispatch(self,"__str__"))
 
+
+    def who(self):
+        """ .who() method; kind of like dir() but removes special methods, methods with underscores, etc. OK to override this in your classes, in which case your method will be called instead"""
+
+        # NOTE: who() code also present in configfile.py and dgpy.py/class Module
+
+        wrappedobj = object.__getattribute__(self,"_wrappedobj")
+        orig_who_method = None
+        try:
+            orig_who_method = getattr(wrappedobj,"who")
+            pass
+        except AttributeError:
+            pass
+
+        if orig_who_method is not None:
+            return orig_who_method()
+
+        dir_output = dir(wrappedobj)
+
+        filtered_dir_output = [ attr for attr in dir_output if not attr.startswith("_") and not attr=="who"]
+        filtered_dir_output.sort()
+
+        return filtered_dir_output
     
-        
     #def __subclasscheck__(self):
     #    raise ValueError("Can not check subclass status of a proxy object")
     #

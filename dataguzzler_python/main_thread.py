@@ -2,6 +2,7 @@ import sys
 import os
 import signal
 import queue
+import atexit
 
 from .dgpy import SimpleContext,InitContext,PushThreadContext,PopThreadContext
 
@@ -41,6 +42,11 @@ def main_thread_run():
         except KeyboardInterrupt:
             # Exit immediately on Ctrl-C 
             #sys.stderr.write("Immediate exit!\n")
+
+            
+            # we need interrupt main thread with hangup signal, because otherwise we get a hang. But for some reason the exitfuncs (writing out readline history) don't get called in that case, so we run them manually
+            atexit._run_exitfuncs()
+            
             # Need to interrupt the keyboard reader thread
             os.kill(os.getpid(),signal.SIGHUP)
             sys.exit(0)
@@ -59,6 +65,10 @@ def main_thread_run():
         except KeyboardInterrupt:
             # Exit immediately on Ctrl-C
             # interrupt the keyboard reader thread
+            
+            # we need interrupt main thread with hangup signal, because otherwise we get a hang. But for some reason the exitfuncs (writing out readline history) don't get called in that case, so we run them manually
+            atexit._run_exitfuncs()
+            
             os.kill(os.getpid(),signal.SIGHUP)
             sys.exit(0)
             pass
