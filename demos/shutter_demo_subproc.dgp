@@ -1,6 +1,11 @@
 
 include("dgpy_startup.dpi") # If you get a NameError here, be sure you are executing this file with dataguzzler-python
 
+include("pint.dpi")
+
+
+SubProc = subproc.from_immediate("SubProc",r"""
+include("dgpy_startup.dpi")
 include("serial.dpi")
 include("pint.dpi")
 
@@ -12,6 +17,8 @@ port = "loop://"
 servocont = pololu_rs232servocontroller("servocont",port)
 
 shutter = servoshutter("shutter",servocont.servos[0],servocont.servos[1])
+
+""",debug=False)
 
 
 

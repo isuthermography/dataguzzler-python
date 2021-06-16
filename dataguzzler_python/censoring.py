@@ -12,7 +12,7 @@ import pint
 
 from .dgpy import Module
 from .dgpy import threadsafe
-from .context import CurContext
+from .context import CurContext,RunInContext
 from .remoteproxy import remoteproxy
 from .OpaqueWrapper import OpaqueWrapper,attemptunwrap
 
@@ -57,6 +57,8 @@ def censorobj(sourcecontext,destcontext,attrname,obj):
     if isinstance(obj,str):
         return str(obj)
 
+    if obj is type or obj is None:
+        return obj # never need to wrap "type" or None
 
     if type(obj) is Module:
         return obj  # Don't need to wrap module metaclass (below)

@@ -20,6 +20,7 @@ import struct
 import numbers
 
 import numpy as np
+import pint
 
 from .remoteproxy import remoteproxy
 from . import dgpy
@@ -65,6 +66,7 @@ class ProxyObj(object):
         self.object_to_wrap=object_to_wrap
         self.remote_refcnt=0
         if debug:
+            #sys.stderr.write("object_to_wrap class: %s\n" % (str(object_to_wrap.__class__)))
             sys.stderr.write("pid %d tid %d creating proxy object %d for %s of type %s\n" % (os.getpid(),threading.get_ident(),self.idval,str(object_to_wrap),object_to_wrap.__class__.__name__))
             pass
         
@@ -139,9 +141,36 @@ class PyDGAsyncConn(DGConn):
         self.conninfo=conninfo
         pass
 
+    def get_proxy(self,ret):
+        self.proxydb_lock.acquire()
+        try:
+            if id(ret) in self.proxydb:
+                # Use pre-existing proxy if we have one
+                retproxy = self.proxydb[id(ret)]
+                pass
+            else:
+                # Create a new proxy if necessary
+                retproxy = ProxyObj(ret,self.debug)
+                self.proxydb[id(ret)]=retproxy
+                pass
+            pass
+        finally:
+            self.proxydb_lock.release()
+        return retproxy
+
     def get_proxy_if_needed(self,ret):
-        if ret is None or isinstance(ret,numbers.Number) or isinstance(ret,str) or isinstance(ret,bytes) or isinstance(ret,np.ndarray) or isinstance(ret,bool) or isinstance(ret,remoteproxy):
-            # Simple numbers/strings/other base types/numpy arrays/existing proxies: Do not proxy
+        if object.__getattribute__(ret,"__class__").__name__ == "OpaqueWrapper":
+            return self.get_proxy(ret)
+
+        if object.__getattribute__(ret,"__class__") is remoteproxy:
+            # existing proxies don't get reproxied
+            return ret
+        if self.debug:
+            sys.stderr.write("get_proxy_if_needed on %s\n" % (object.__getattribute__(ret,"__class__").__name__))
+            pass
+        
+        if ret is None or ret is type or isinstance(ret,numbers.Number) or isinstance(ret,str) or isinstance(ret,bytes) or isinstance(ret,np.ndarray) or isinstance(ret,pint.util.SharedRegistryObject) or isinstance(ret,bool) :
+            # Simple numbers/strings/other base types/numpy arrays/unit quantities: Do not proxy, just let them pickle
             return ret
 
         if type(ret) is tuple or type(ret) is list:
@@ -170,21 +199,7 @@ class PyDGAsyncConn(DGConn):
         
         # Otherwise, find or create a proxy 
 
-        self.proxydb_lock.acquire()
-        try:
-            if id(ret) in self.proxydb:
-                # Use pre-existing proxy if we have one
-                retproxy = self.proxydb[id(ret)]
-                pass
-            else:
-                # Create a new proxy if necessary
-                retproxy = ProxyObj(ret,self.debug)
-                self.proxydb[id(ret)]=retproxy
-                pass
-            pass
-        finally:
-            self.proxydb_lock.release()
-        return retproxy
+        return self.get_proxy(ret)
 
     def deproxy(self,obj):
         """Search for remoteproxy objects in freshly received and unpickled
@@ -233,7 +248,7 @@ class PyDGAsyncConn(DGConn):
 
         conninfo_writer = self.conninfo.writer
         #from .dgpy import OpaqueWrapper # avoid import loop
-        if conninfo_writer.__class__.__name__=="OpaqueWrapper": #  is OpaqueWrapper:
+        if object.__getattribute__(conninfo_writer,"__class__").__name__=="OpaqueWrapper": #  is OpaqueWrapper:
             # Sometimes self.conninfo is actually a module in which
             # case we theoretically don't have direct access to its
             # contents from the execution threads. In this case it is
@@ -243,7 +258,7 @@ class PyDGAsyncConn(DGConn):
 
         conninfo_loop = self.conninfo.loop
         #from .dgpy import OpaqueWrapper # avoid import loop
-        if conninfo_loop.__class__.__name__=="OpaqueWrapper": #  is OpaqueWrapper:
+        if object.__getattribute__(conninfo_loop,"__class__").__name__=="OpaqueWrapper": #  is OpaqueWrapper:
             # Sometimes self.conninfo is actually a module in which
             # case we theoretically don't have direct access to its
             # contents from the execution threads. In this case it is
@@ -333,6 +348,14 @@ class PyDGAsyncConn(DGConn):
         
         if exc is not None:
             #sys.stderr.write("Exception in asynchronous connection method call: %s\n\nTraceback follows:\n%s\n\n" % (str(exc),tb_str))
+
+            # Handle some special cases...
+            # __getattribute__ raising AttributeError means that the callback should fallback to __getatttr__
+            if methodname=="__getattribute__" and isinstance(exc,AttributeError):
+                raise AttributeError("Remote attribute error %s" % (str(exc)))
+            elif methodname=="__next__" and isinstance(exc,StopIteration):
+                # Interator protocol
+                raise StopIteration
             raise AsyncFailureError(str(exc),tb_str)
             
         #set_active_remote_link_this_thread(None)
@@ -346,7 +369,7 @@ class PyDGAsyncConn(DGConn):
 
         conninfo_writer = self.conninfo.writer
         #from .dgpy import OpaqueWrapper # avoid import loop
-        if conninfo_writer.__class__.__name__=="OpaqueWrapper": #  is OpaqueWrapper:
+        if object.__getattribute__(conninfo_writer,"__class__").__name__=="OpaqueWrapper": #  is OpaqueWrapper:
             # Sometimes self.conninfo is actually a module in which
             # case we theoretically don't have direct access to its
             # contents from the execution threads. In this case it is
@@ -356,7 +379,7 @@ class PyDGAsyncConn(DGConn):
 
         conninfo_loop = self.conninfo.loop
         #from .dgpy import OpaqueWrapper # avoid import loop
-        if conninfo_loop.__class__.__name__=="OpaqueWrapper": #  is OpaqueWrapper:
+        if object.__getattribute__(conninfo_loop,"__class__").__name__=="OpaqueWrapper": #  is OpaqueWrapper:
             # Sometimes self.conninfo is actually a module in which
             # case we theoretically don't have direct access to its
             # contents from the execution threads. In this case it is
@@ -578,6 +601,12 @@ class PyDGAsyncConn(DGConn):
         exc = None
         tb_str = None
         try:
+            if self.debug:
+                sys.stderr.write("Calling %s with %s and %s\n" % (callable,rgs,kwrgs))
+                #if callable.__name__=="__hash__" and len(rgs)==0:
+                #    raise ValueError("DEBUG!!!")
+                pass
+            
             ret = callable(*rgs,**kwrgs)
             pass
         except Exception as ex:
@@ -590,7 +619,7 @@ class PyDGAsyncConn(DGConn):
         #print("real_evloop ",self.conninfo.loop.real_evloop)
 
         conninfo_loop = self.conninfo.loop
-        if conninfo_loop.__class__ is dgpy.OpaqueWrapper:
+        if object.__getattribute__(conninfo_loop,"__class__").__name__ == "OpaqueWrapper":
             # Sometimes self.conninfo is actually a module in which
             # case we theoretically don't have direct access to its
             # contents from the execution threads. In this case it is
