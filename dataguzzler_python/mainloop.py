@@ -1,8 +1,11 @@
 # !!!*** python3 only!!!***
 import sys
+import os
+import signal
 import ast
 import socket
 import traceback
+import threading
 import importlib
 from threading import Thread,Lock
 import asyncio
@@ -108,6 +111,9 @@ def console_input_processor(dgpy_config,contextname,localvars,rlcompleter):
                 # main terminal disconnected: exit
                 #PopThreadContext()
                 #sys.stderr.write("Attempting to exit; tid=%d!\n" % (threading.get_ident()))
+                # interrupt main thread with hangup signal
+                os.kill(os.getpid(),signal.SIGHUP)
+
                 sys.exit(0)
                 pass
             

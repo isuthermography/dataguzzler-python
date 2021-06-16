@@ -1,3 +1,6 @@
+import sys
+import os
+import signal
 import queue
 
 from .dgpy import SimpleContext,InitContext,PushThreadContext,PopThreadContext
@@ -30,9 +33,19 @@ def main_thread_run():
     
     PushThreadContext(main_thread_context)
     while True:
-
+        exitflag= False
         dgpy_compatible_context=None
-        (callable,args,dgpy_compatible_context,kwargs) = main_thread_queue.get()
+        try:
+            (callable,args,dgpy_compatible_context,kwargs) = main_thread_queue.get()
+            pass
+        except KeyboardInterrupt:
+            # Exit immediately on Ctrl-C 
+            #sys.stderr.write("Immediate exit!\n")
+            # Need to interrupt the keyboard reader thread
+            os.kill(os.getpid(),signal.SIGHUP)
+            sys.exit(0)
+            pass
+
 
         if dgpy_compatible_context is not None:
             custom_context = SimpleContext()
@@ -42,6 +55,12 @@ def main_thread_run():
             pass
         try:
             callable(*args,**kwargs)
+            pass
+        except KeyboardInterrupt:
+            # Exit immediately on Ctrl-C
+            # interrupt the keyboard reader thread
+            os.kill(os.getpid(),signal.SIGHUP)
+            sys.exit(0)
             pass
         except:
             sys.stderr.write("Exception in main loop thread:\n")

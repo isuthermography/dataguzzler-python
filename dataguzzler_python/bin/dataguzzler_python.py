@@ -124,7 +124,7 @@ def main(args=None):
         spec.loader.exec_module(dgpy_config)
         pass
     except:
-        sys.stderr.write("Exception running config file. Dropping into debugger...\n")
+        sys.stderr.write("Exception running config file...\n")
 
         localvars["__dgpy_last_exc_info"]=sys.exc_info()
 
