@@ -16,6 +16,8 @@ class servoshutter(metaclass=dgpy_Module):
     controlled by an obsolete Pololu 8-port RS232 
     servo controller https://www.pololu.com/product/727/resources
     
+    WARNING: This immediately centers the servos on startup!
+
     How to use: 
 
     In your config file: 
@@ -38,9 +40,9 @@ class servoshutter(metaclass=dgpy_Module):
     _servo_speed = None
     _servo_open = None
     _servo_closed = None
+    _servo_centered = None
     _lastchanged = None
     desired_state = None
-    _enabled = None
     def __init__(self,
                  modulename,
                  servo1,
@@ -48,16 +50,17 @@ class servoshutter(metaclass=dgpy_Module):
                  initial_state = "CLOSED",
                  servo_speed = 500*ur.us/ur.s,
                  servo_open = 843.75*ur.us,
-                 servo_closed = 1706.25*ur.us
+                 servo_closed = 1706.25*ur.us,
+                 servo_centered = 1500*ur.us
                  ):
         self.servo1 = servo1
         self.servo2 = servo2
         self.desired_state = initial_state
+        self._servo_speed = servo_speed
         self._servo_open = servo_open
         self._servo_closed = servo_closed
-        self._servo_speed = servo_speed
+        self._servo_centered = servo_centered
         
-        self.enabled = False
         self._lastchanged=time.monotonic()
 
 
@@ -65,14 +68,17 @@ class servoshutter(metaclass=dgpy_Module):
         self.servo1.speed = servo_speed
         self.servo2.speed = servo_speed
 
+        # The servo controller wants to start centered,
+        # so its best just to let it do that
+        self.servo1.position=servo_centered
+        self.servo2.position=servo_centered
         pass
 
 
     @property
     def status(self):
         r"""Command or report status of the shutter: Usually "OPEN" or "CLOSED" """
-        if not self.enabled:
-            return "DISABLED"
+
         curtime = time.monotonic()
 
         timedelta = (curtime-self._lastchanged)*ur.s
@@ -82,7 +88,10 @@ class servoshutter(metaclass=dgpy_Module):
 
         if self.servo1.position_matches(self._servo_open) and self.servo2.position_matches(self._servo_open):
             return "OPEN"
-        
+
+        if self.servo1.position_matches(self._servo_centered) and self.servo2.position_matches(self._servo_centered):
+            return "CENTERED"
+
         if self.servo1.position_matches(self._servo_closed) and self.servo2.position_matches(self._servo_closed):
             return "CLOSED"
         
@@ -99,9 +108,6 @@ class servoshutter(metaclass=dgpy_Module):
         else:
             raise ValueError("Invalid shutter status: %s" % (desired_status))
         
-        if not self.enabled:
-            self.enabled = True
-            pass
 
         self.desired_state = desired_status
 
