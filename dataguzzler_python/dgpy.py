@@ -141,7 +141,7 @@ class Module(type):
                 # NOTE: who() code also present in configfile.py and OpaqueWrapper.py
                 dir_output = dir(self)
 
-                filtered_dir_output = [ attr for attr in dir_output if not attr.startswith("_") and not attr=="who"]
+                filtered_dir_output = [ attr for attr in dir_output if not attr.startswith("_") and not attr=="who" and not attr=="help"]
                 filtered_dir_output.sort()
                 
                 return filtered_dir_output

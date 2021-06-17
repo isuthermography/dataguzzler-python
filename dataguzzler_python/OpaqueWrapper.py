@@ -110,7 +110,7 @@ class OpaqueWrapper(object):
 
         dir_output = dir(wrappedobj)
 
-        filtered_dir_output = [ attr for attr in dir_output if not attr.startswith("_") and not attr=="who"]
+        filtered_dir_output = [ attr for attr in dir_output if not attr.startswith("_") and not attr=="who" and not attr=="help"]
         filtered_dir_output.sort()
 
         return filtered_dir_output

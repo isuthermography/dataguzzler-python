@@ -28,7 +28,7 @@ def whofunc(mod,*args):
     
     totallist = list(globalkeys)+list(localkeys)
 
-    filtered_totallist = [ attr for attr in totallist if not attr.startswith("_") and not attr=="who"]
+    filtered_totallist = [ attr for attr in totallist if not attr.startswith("_") and not attr=="who" and not attr=="help"]
     filtered_totallist.sort()
     
     old_pretty_printing=r""""
