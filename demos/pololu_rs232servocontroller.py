@@ -48,7 +48,7 @@ class _pololu_rs232servo(object):
     @property
     def power(self):
         """Command or readout whether this servo is energized (True/False)"""
-        return self._power
+        return self._power # Ideally this would read-back from hardware
     
     @power.setter
     def power(self,status):
@@ -104,6 +104,8 @@ class _pololu_rs232servo(object):
         if self._position > 255:
             self._position = 255
             pass
+
+        self._power = True # Servo automatically turns on when we command a position.
         
         positionhighbyte=(int(self._position) & 0x80) >> 7
         positionlowbyte=int(self._position) & 0x7f
