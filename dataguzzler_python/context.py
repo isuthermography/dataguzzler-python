@@ -100,11 +100,16 @@ def FormatCurContext():
         pass
     res+=")"
     return res
+
 def InContext(context):
     (cur_ctx,cur_compatible) = CurContext()
     if context is cur_ctx or context is cur_compatible:
         return True
     return False
+
+def AssertContext(context):
+    assert(InContext(context))
+    pass
 
 class SimpleContext(object):
     _dgpy_contextlock=None

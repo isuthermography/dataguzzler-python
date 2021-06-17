@@ -9,9 +9,11 @@ ur = pint.get_application_registry()
 # equally well inside or outside of dataguzzler_python
 if "dataguzzler_python" in sys.modules:
     from dataguzzler_python.dgpy import Module as dgpy_Module
+    from dataguzzler_python.context import AssertContext
     pass
 else:
     dgpy_Module = type
+    AssertContext = lambda context: None
     pass
 
 
@@ -91,6 +93,9 @@ class _pololu_rs232servo(object):
     @position.setter
     def position(self,pos):
         """Note: commanding a position turns on the servo"""
+
+        # Be sure we are executing in the proper context (of the controller)
+        AssertContext(self.controller)
         
         self._position=self._position_to_counts(pos)
         if self._position < 0:
