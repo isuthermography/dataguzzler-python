@@ -1,3 +1,4 @@
+import sys
 import threading
 
 # set of names of Python magic methods
@@ -87,7 +88,18 @@ class remoteproxy(object):
         idval=object.__getattribute__(self,"_remoteproxy_remoteid")
         remote_link = object.__getattribute__(self,"_remoteproxy_remote_link")
         if remote_link is not None:
-            conninfo_loop = remote_link.conninfo.loop
+
+            #sys.stderr.write("remote_link class=%s\n" % (object.__getattribute__(remote_link,"__class__").__name__))
+            
+            conninfo = remote_link.conninfo
+            if object.__getattribute__(conninfo,"__class__").__name__=="OpaqueWrapper": #  Sometimes conninfo might be a wrapper.... if so, unwrap it
+                conninfo = object.__getattribute__(conninfo,"_wrappedobj")
+                pass
+        
+            #sys.stderr.write("conninfo class=%s\n" % (object.__getattribute__(conninfo,"__class__").__name__))
+            
+            
+            conninfo_loop = object.__getattribute__(conninfo,"loop")
             #from .dgpy import OpaqueWrapper # avoid import loop
             if object.__getattribute__(conninfo_loop,"__class__").__name__=="OpaqueWrapper": #  is OpaqueWrapper:
                 # Sometimes self.conninfo is actually a module in which
