@@ -121,6 +121,16 @@ class Module(type):
         #
         #setattr(cls,"_dgpy_threadcode",_dgpy_threadcode)
 
+        #sys.stderr.write("class init params: %s\n" % (str(inspect.signature(cls.__init__).parameters)))
+
+        class_init_params = list(inspect.signature(cls.__init__).parameters)
+        if class_init_params[0] != "self":
+            raise ValueError("First __init__ constructor parameter for dgpy.Module class %s is \"%s\" not \"self\"" % (cls.__name__,class_init_params[0]))
+        
+        if class_init_params[1] != "module_name":
+            raise ValueError("First __init__ constructor parameter after \"self\" for dgpy.Module class %s is \"%s\" not \"module_name\"" % (cls.__name__,class_init_params[1]))
+        
+        
         # define __new__ method for the dgpy module class
         # ... this creates and initializes the ._dgpy_contextlock member
         # and sets the context of executing the __new__ method
