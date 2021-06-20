@@ -96,7 +96,7 @@ class CTScan(object,metaclass=pydg.Module):
         pass
 
 
-    def __init__(self,modulename,start=0.0,step=1.0,endplusone=360.0,numavgs=16): # modulename MUST be first parameter
+    def __init__(self,module_name,start=0.0,step=1.0,endplusone=360.0,numavgs=16): # module_name MUST be first parameter
         #print("Init the hardware")
         assert(pydg.CurContext() is self)
 

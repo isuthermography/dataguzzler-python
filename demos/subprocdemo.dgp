@@ -7,7 +7,7 @@ SubProc = subproc.from_immediate("SubProc",r"""
 include("dgpy_startup.dpi")
 
 class SubProcClass(object,metaclass=dgpy.Module):
-    def __init__(self,modulename): # modulename MUST be first parameter
+    def __init__(self,module_name): # module_name MUST be first parameter
         print("Init the hardware (sub process)")
         assert(dgpy.CurContext()[0] is self)
         pass
@@ -43,7 +43,7 @@ SubProcObj=SubProcClass("SubClass module 1")
 
 
 class MainProcClass(object,metaclass=dgpy.Module):
-    def __init__(self,modulename): # modulename MUST be first parameter
+    def __init__(self,module_name): # module_name MUST be first parameter
         print("Init the hardware (main process)")
         assert(dgpy.CurContext()[0] is self)
         pass

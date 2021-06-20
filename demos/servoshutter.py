@@ -44,7 +44,7 @@ class servoshutter(metaclass=dgpy_Module):
     _lastchanged = None
     desired_state = None
     def __init__(self,
-                 modulename,
+                 module_name,
                  servo1,
                  servo2,
                  initial_state = "CLOSED",

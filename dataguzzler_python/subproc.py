@@ -166,11 +166,11 @@ represent the parent process"""
     DGConn = None
     readerthread = None
     writerthread = None
-    modulename = None
+    module_name = None
     debug = None
     
-    def __init__(self,modulename,child_conn_receiver,child_conn_sender,debug):
-        self.modulename=modulename
+    def __init__(self,module_name,child_conn_receiver,child_conn_sender,debug):
+        self.module_name=module_name
         self.child_conn_receiver = child_conn_receiver
         self.child_conn_sender = child_conn_sender
         self.debug=debug
@@ -305,12 +305,12 @@ class subproc(object,metaclass=dgpy_Module):
     parent_conn_sender = None
 
     DGConn = None
-    modulename = None
+    module_name = None
     debug = False
     
-    def __init__(self,modulename,dgpfilename,dgpcontent,contextdir,debug):
+    def __init__(self,module_name,dgpfilename,dgpcontent,contextdir,debug):
         """Use from_XXXX classmethods to construct"""
-        self.modulename=modulename
+        self.module_name=module_name
 
         if debug:
             sys.stderr.write("Mainprocess pid=%d\n" % (os.getpid()))
@@ -356,7 +356,7 @@ class subproc(object,metaclass=dgpy_Module):
         InitCompatibleThread(self,"_subprocreader")
         self.readerloop.run_forever()
         
-        sys.stderr.write("dataguzzler-python %s: Warning: Subprocess exited\n" % (self.modulename))
+        sys.stderr.write("dataguzzler-python %s: Warning: Subprocess exited\n" % (self.module_name))
         self.process.join()
 
         # Note: we don't currently have a way to trigger our own join() method
@@ -383,7 +383,7 @@ class subproc(object,metaclass=dgpy_Module):
         pass
     
     @classmethod
-    def from_dgpfile(cls,modulename,dgpfile,contextdir=None,debug=False):
+    def from_dgpfile(cls,module_name,dgpfile,contextdir=None,debug=False):
         """
         Create a subprocess with configuration loaded from a file
         dgpfile is a relative or absolute URL of the file to load. 
@@ -408,10 +408,10 @@ class subproc(object,metaclass=dgpy_Module):
 
         dgpcontent = open(dgppath).read()
         
-        return cls(modulename,dgppath,dgpcontent,os.path.split(dgppath)[0],debug)
+        return cls(module_name,dgppath,dgpcontent,os.path.split(dgppath)[0],debug)
 
     @classmethod
-    def from_immediate(cls,modulename,dgpcontent,contextdir=None,debug=False):
+    def from_immediate(cls,module_name,dgpcontent,contextdir=None,debug=False):
         """
         Create a subprocess with configuration loaded from a given
         string (usually a multi-line raw string) given as dgpcontent.
@@ -430,6 +430,6 @@ class subproc(object,metaclass=dgpy_Module):
         if contextdir is None:
             raise ValueError("Could not figure out context directory")
         
-        return cls(modulename,None,dgpcontent,contextdir,debug)
+        return cls(module_name,None,dgpcontent,contextdir,debug)
 
     

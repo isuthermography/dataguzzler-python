@@ -127,19 +127,19 @@ class Module(type):
         def __new__(cls,*args,**kwargs):
             newobj=object.__new__(cls)
 
-            modulename = None
-            #if "modulename" in kwargs:
-            #    modulename=kwargs["modulename"]
+            module_name = None
+            #if "module_name" in kwargs:
+            #    module_name=kwargs["module_name"]
             #    pass
             if len(args) > 0:
-                modulename=args[0]
+                module_name=args[0]
                 pass
 
-            if modulename is None or type(modulename) is not str:
-                raise ValueError("First argument to dgpy.Module constructor should be a string: modulename")
+            if module_name is None or type(module_name) is not str:
+                raise ValueError("First argument to dgpy.Module constructor should be a string: module_name")
             
         
-            InitContext(newobj,modulename) # add _dgpy_contextlock member
+            InitContext(newobj,module_name) # add _dgpy_contextlock member
             #import pdb
             #pdb.set_trace()
             PushThreadContext(newobj) # Set context... released in__call__ below

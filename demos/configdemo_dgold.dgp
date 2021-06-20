@@ -3,7 +3,7 @@ include("dgpy_startup.dpi") # If you get a NameError here, be sure you are execu
 include("dgpy_dgold.dpi")
 
 class DemoClass(object,metaclass=dgpy.Module):
-    def __init__(self,modulename): # modulename MUST be first parameter
+    def __init__(self,module_name): # module_name MUST be first parameter
         print("Init the hardware")
         assert(dgpy.CurContext()[0] is self)
         pass

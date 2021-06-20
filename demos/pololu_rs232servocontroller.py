@@ -148,7 +148,7 @@ class pololu_rs232servocontroller(object,metaclass=dgpy_Module):
     
     pol = None # Serial port filehandle
     servos = None
-    def __init__(self,modulename,port="/dev/ttyUSBpololu"):
+    def __init__(self,module_name,port="/dev/ttyUSBpololu"):
         # port should be the device name (Linux or MacOS) or COM port (Windows)
         # Usually find this by include("serial.dpi"); then identify the
         # desired port in the serial_ports list and pass its 3rd (hwid)
