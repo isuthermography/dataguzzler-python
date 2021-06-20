@@ -56,8 +56,10 @@ def censorobj(sourcecontext,destcontext,attrname,obj):
     if isinstance(obj,bool):
         return bool(obj)
 
+    
     if isinstance(obj,numbers.Number):
-        return int(obj)
+        # Presumed to be OK
+        return obj
 
     #if  isinstance(obj,float):
     #    return float(obj)
