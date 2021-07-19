@@ -20,6 +20,8 @@ from .dgpy import InitThreadContext
 from .dgpy import PushThreadContext,PopThreadContext
 
 
+Conns={} # Dictionary by connid... includes TCP connections and similar but not sub-connections within asynchronous TCP links
+
 def start_response(writer,returncode,length):
     returncode=int(returncode)
     
@@ -318,13 +320,14 @@ class ConnAcceptor(object):
     _dgpy_contextlock=None
     _dgpy_contextname=None
 
-    def __init__(self,clientsocket,address,connid,connbuilder):
+    def __init__(self,clientsocket,address,connid,connbuilder,**kwargs):
         self.clientsocket=clientsocket
         self.address=address
         self.connid=connid
 
-        self.connobj = connbuilder()
-        
+        self.connobj = connbuilder(**kwargs)
+        global Conns
+        Conns[connid]=self.connobj
         self.connobj.set_conninfo(self)
         pass
 

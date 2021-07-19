@@ -23,12 +23,11 @@ from .remoteproxy import remoteproxy
 
 from .dgpy import SimpleContext,InitThreadContext,InitThread,InitContext
 from .dgpy import PushThreadContext,PopThreadContext
-from .conn import PyDGConn,OldDGConn
+from .conn import PyDGConn,OldDGConn,ConnAcceptor
 from .conn import process_line,render_response,write_response
 
 nextconnid=0  # global... only accessible from main server thread
 nextconnidlock=Lock()
-Conns={} # Dictionary by connid... includes TCP connections and similar but not sub-connections within asynchronous TCP links
 
 
 
@@ -52,8 +51,8 @@ Conns={} # Dictionary by connid... includes TCP connections and similar but not 
 
 
 
-def tcp_server(hostname,port,connbuilder=lambda **kwargs: PyDGConn(**kwargs),auth=None):
-    global nextconnid,nextconnidlock,Conns
+def tcp_server(hostname,port,connbuilder=lambda **kwargs: PyDGConn(**kwargs),**kwargs):
+    global nextconnid,nextconnidlock
     serversocket=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
     serversocket.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
 
@@ -69,14 +68,14 @@ def tcp_server(hostname,port,connbuilder=lambda **kwargs: PyDGConn(**kwargs),aut
         nextconnid+=1
         nextconnidlock.release()
         
+        Acceptor=ConnAcceptor(clientsocket=clientsocket,
+                              address=address,
+                              connid=connid,
+                              connbuilder=connbuilder,
+                              **kwargs)
+        # Acceptor constructor adds us to the global Conns dictionary 
         
-        Conn=connbuilder(clientsocket=clientsocket,
-                         address=address,
-                         connid=connid,
-                         auth=auth)
-        Conns[connid]=Conn
-        
-        Conn.start()
+        Acceptor.start()
         
         pass
     pass
