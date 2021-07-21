@@ -332,6 +332,12 @@ class ConnAcceptor(object):
         pass
 
     def start(self):
+        # !!! Would be nice to start a parallel monitoring thread to see if this conn has died
+        # and trigger waits to terminate and/or locked resources to be released.
+        # But the socket API doesn't give a way to check for a dropped connection except
+        # reading it, which would have to wait for an executing waits to finish on their own.
+        # Better alternative: perform background readahead until we run out of data in a parallel thread, rather than synchronous read->process->read->process. That way if the reader thread detects a dropped connection we can set an exit flag. 
+        
         self.thread=Thread(target=self.threadcode,daemon=True)
         self.thread.start()
         pass
