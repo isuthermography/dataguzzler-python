@@ -105,7 +105,7 @@ def censorobj(sourcecontext,destcontext,attrname,obj):
             pass
 
         if isinstance(obj,np.ndarray):
-            arraycopy.flags.writable=False # Make immutable
+            arraycopy.flags.writeable=False # Make immutable
             pass
         return arraycopy
    
