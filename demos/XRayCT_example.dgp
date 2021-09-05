@@ -1,6 +1,8 @@
-include("dgpy_startup.dpi") # If you get a NameError here, be sure you are executing this file with dataguzzler-python
+from dataguzzler_python import dgpy
 
-include("dgpy_dgold.dpi")
+include(dgpy,"dgpy_startup.dpi") # If you get a NameError here, be sure you are executing this file with dataguzzler-python
+
+include(dgpy,"dgpy_dgold.dpi")
 
 from limatix.dc_value import numericunitsvalue as nuv
 
@@ -238,6 +240,6 @@ capturedark(wait=False)
 
 from dataguzzler_python import password_auth,password_acct
 
-include("network_access.dpi",
+include(dgpy,"network_access.dpi",
         auth=password_auth(password_acct("dgp","xyzzy")))
 

@@ -34,7 +34,7 @@ class BuildCommand(build):
 
 ext_modules = []
 package_data = {
-    "dataguzzler_python": []
+    "dataguzzler_python": ["*.dpi"]
 }
 
 if "--with-dgold" in sys.argv:

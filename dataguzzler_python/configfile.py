@@ -4,6 +4,7 @@ from types import ModuleType
 import importlib
 import posixpath
 from urllib.request import url2pathname
+from urllib.parse import quote
 import atexit
 import ast
 import inspect
@@ -137,19 +138,38 @@ class DGPyConfigFileLoader(importlib.machinery.SourceFileLoader):
         module.__dict__["_contextstack"]=[ os.path.split(self.sourcetext_context)[0] ]
         sys.path.insert(0,module.__dict__["_contextstack"][-1]) # Current context should always be at start of module search path
         
-        def DGPyConfigFile_include(includeurl,**kwargs):
+        def DGPyConfigFile_include(includepackage,includeurl=None,**kwargs):
             """Include a sub-config file as if it were 
             inserted in your main config file. 
             
-            Provide the relative or absolute path (includeurl)
-            in URL notation with forward slashes and percent-encoding of special 
-            characters"""
+            Provide an imported package (or None) as includepackage, then
+            the relative or absolute path as includeurl, in URL notation 
+            with forward slashes (but not percent-encoding of special 
+            characters).
+            """
+
+            if includeurl is None:
+                if isinstance(includepackage,str):
+                    warnings.warn("include() should now have a packaage (or None) as its first argument", category=DeprecationWarning)
+                    pass
+                includeurl = includepackage
+                includepackage = None
+                pass
+
+            quoted_includeurl=quote(includeurl)
             
-            if posixpath.isabs(includeurl):
-                includepath = url2pathname(includeurl)
+            if posixpath.isabs(quoted_includeurl):
+                if includepackage is not None:
+                    raise ValueError("Set package context to None if using an absolute include URL such as %s" % (includeurl))
+                includepath = url2pathname(quoted_includeurl)
                 pass
             else:
-                includepath = os.path.join(module.__dict__["_contextstack"][-1],url2pathname(includeurl))
+                if includepackage is None:
+                    includepath = os.path.join(module.__dict__["_contextstack"][-1],url2pathname(quoted_includeurl))
+                    pass
+                else:
+                    includepath = os.path.join(os.path.dirname(includepackage.__file__),url2pathname(quoted_includeurl))
+                    pass
                 pass
             
             # Now includepath is the path of my include file

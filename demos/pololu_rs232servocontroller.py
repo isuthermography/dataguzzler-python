@@ -129,8 +129,9 @@ class pololu_rs232servocontroller(object,metaclass=dgpy_Module):
     with its .servo attribute
     
     How to use: 
-    include("serial.dpi")
-    include("pint.dpi")
+    from dataguzzler_python import dgpy
+    include(dgpy,"serial.dpi")
+    include(dgpy,"pint.dpi")
     from pololu_rs232servocontroller import pololu_rs232servocontroller
     
     port = find_serial_port("A700eEMQ")

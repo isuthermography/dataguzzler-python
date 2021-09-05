@@ -1,8 +1,9 @@
+from dataguzzler_python import dgpy
 
-include("dgpy_startup.dpi") # If you get a NameError here, be sure you are executing this file with dataguzzler-python
+include(dgpy,"dgpy_startup.dpi") # If you get a NameError here, be sure you are executing this file with dataguzzler-python
 
-include("serial.dpi")
-include("pint.dpi")
+include(dgpy,"serial.dpi")
+include(dgpy,"pint.dpi")
 
 from pololu_rs232servocontroller import pololu_rs232servocontroller
 from servoshutter import servoshutter
@@ -17,5 +18,17 @@ shutter = servoshutter("shutter",servocont.servos[0],servocont.servos[1])
 
 from dataguzzler_python import password_auth,password_acct
 
-include("network_access.dpi",
+include(dgpy,"network_access.dpi",
         auth=password_auth(password_acct("dgp","xyzzy")))
+
+print("dataguzzler-python shutter demo")
+print("-------------------------------")
+print("You can control the shutter with: shutter.status=\"OPEN\"")
+print("or shutter.status=\"CLOSED\"")
+print(" ")
+print("You can query the shutter with: shutter")
+print(" ")
+print("Sometimes the shutter will be MOVING because it is slow")
+print(" ")
+print("You can explore the variables, objects, and class structure")
+print("with e.g. who() or shutter.who() or shutter.help()")

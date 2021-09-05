@@ -28,7 +28,7 @@ def InitFreeThread():
 def InitCompatibleThread(module,namesuffix):
     """Use this to initialize a thread that may freely access member variables, etc. of the given module, even though it isn't the primary thread context of the module"""
     context=SimpleContext()
-    InitThreadContext(context,object.__getattribute__(module,"_dgpy_contextname")+"namesuffix",compatible=module)
+    InitThreadContext(context,object.__getattribute__(module,"_dgpy_contextname")+namesuffix,compatible=module)
     PushThreadContext(context)
     pass
 
