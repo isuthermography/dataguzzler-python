@@ -1,5 +1,7 @@
 import sys
+import warnings
 import os
+import os.path
 from types import ModuleType
 import importlib
 import posixpath
