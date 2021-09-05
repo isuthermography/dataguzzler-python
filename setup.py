@@ -6,7 +6,13 @@ if "--with-dgold" in sys.argv:
 
 from setuptools import setup, Extension
 import numpy as np
-
+import distutils
+import os
+import os.path
+import re
+import shutil
+import subprocess
+import glob
 from setuptools.command.install import install
 from distutils.command.build import build
 
@@ -31,6 +37,46 @@ class BuildCommand(build):
         self.with_dgold=False
         pass
     pass
+
+
+# Extract GIT version (use subprocess.call(['git','rev-parse']) to check if we are inside a git repo
+if distutils.spawn.find_executable("git") is not None and subprocess.call(['git','rev-parse'],stderr=subprocess.DEVNULL)==0:
+    # Check if tree has been modified
+    modified = subprocess.call(["git","diff-index","--quiet","HEAD","--"]) != 0
+    
+    gitrev = subprocess.check_output(["git","rev-parse","HEAD"]).decode('utf-8').strip()
+
+    version = "git-%s" % (gitrev)
+
+    # See if we can get a more meaningful description from "git describe"
+    try:
+        versionraw=subprocess.check_output(["git","describe","--tags","--match=v*"],stderr=subprocess.STDOUT).decode('utf-8').strip()
+        # versionraw is like v0.1.0-50-g434343
+        # for compatibility with PEP 440, change it to
+        # something like 0.1.0+50.g434343
+        matchobj=re.match(r"""v([^.]+[.][^.]+[.][^-.]+)(-.*)?""",versionraw)
+        version=matchobj.group(1)
+        if matchobj.group(2) is not None:
+            version += '+'+matchobj.group(2)[1:].replace("-",".")
+            pass
+        pass
+    except subprocess.CalledProcessError:
+        # Ignore error, falling back to above version string
+        pass
+
+    if modified and version.find('+') >= 0:
+        version += ".modified"
+        pass
+    elif modified:
+        version += "+modified"
+        pass
+    pass
+else:
+    version = "UNKNOWN"
+    pass
+
+print("version = %s" % (version))
+
 
 ext_modules = []
 package_data = {
@@ -76,8 +122,9 @@ if sys.version_info < (3,6,0):
 
 
 setup(name="dataguzzler_python",
-      description="dataguzzler_python",
+      description="dataguzzler-python",
       author="Stephen D. Holland",
+      version=version,
       url="http://thermal.cnde.iastate.edu",
       ext_modules=ext_modules,
       zip_safe=False,
