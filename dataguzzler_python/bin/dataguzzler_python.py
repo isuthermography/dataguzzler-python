@@ -44,7 +44,7 @@ def main(args=None):
         raise ValueError("Insufficient Python version: Requires Python 3.6 or above")
 
     if len(args) < 2:
-        print("Usage: %s <config_file.dgp> [arg1:str=value1] [arg2:int=42] [arg3:float=3.1416]" % (args[0]))
+        print("Usage: %s [--profile] <config_file.dgp> [arg1:str=value1] [arg2:int=42] [arg3:float=3.1416]" % (args[0]))
         sys.exit(0)
         pass
 
@@ -81,17 +81,27 @@ def main(args=None):
         pass
 
 
+    profiling=False
+    
     localvars={}
     
     ConfigContext=SimpleContext()
     
     InitThreadContext(ConfigContext,"dgpy_config") # Allow to run stuff from main thread
     PushThreadContext(ConfigContext)
+
+    argc=1
+    if args[argc]=="--profile":
+        profiling = True
+        argc += 1
+        pass
+    
     try: 
-        configfile=args[1]
+        configfile=args[argc]
+        argc += 1
         
         kwargs={}
-        for arg in args[2:]:
+        for arg in args[argc:]:
             # handle named keyword parameters
             (param_typestr,valuestr) = arg.split("=",1)
             (param,typestr) = param_typestr.split(":")
@@ -108,6 +118,30 @@ def main(args=None):
             else:
                 raise ValueError("Unknown type string: \"%s\"" % (typestr))
             pass
+
+        if profiling:
+            try:
+                import yappi
+                pass
+            except ImportError:
+                print("Profiling requires the yappi profiler to be installed; profiling disabled")
+                profiling = False
+                pass
+            pass
+
+        if profiling:
+            yappi.start()
+            print("Profiling enabled")
+            print(" ")
+            print("Use")
+            print("---")
+            print("import yappi")
+            print("yappi.stop()")
+            #print("yappi.get_thread_stats()")
+            print("yappi.get_func_stats().print_all()")
+            print(" ")
+            pass
+            
         
         ##### (global variables will be in dgpy_config.__dict__) 
         dgpy.dgpy_running=True
