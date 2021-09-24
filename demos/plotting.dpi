@@ -1,0 +1,85 @@
+#########################################################################
+# plotting.dpi -- Matplotlib Plotting Include Configuration File
+# Tyler Lesthaeghe, UDRI, Tyler.Lesthaeghe@udri.udayton.edu
+# Created 2021-08-24
+#########################################################################
+# Copyright 2021 University of Dayton Research Institute
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the 
+# "Software"), to deal in the Software without restriction, including 
+# without limitation the rights to use, copy, modify, merge, publish, 
+# distribute, sublicense, and/or sell copies of the Software, and to 
+# permit persons to whom the Software is furnished to do so, subject to 
+# the following conditions:
+#
+# The above copyright notice and this permission notice shall be included 
+# in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS 
+# OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF 
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. 
+# IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY 
+# CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, 
+# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE 
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#########################################################################
+# Change Log
+#     2021-08-24:  File Created (Tyler)
+#########################################################################
+""" Matplotlib Plotting for Dataguzzler
+"""
+
+import sys
+import threading
+from dataguzzler_python import main_thread
+from inspect import getmembers, isfunction
+
+# Should be fine to import directly from pyqt, but this should help avoid
+# conflicts
+from matplotlib.backends.qt_compat import QtCore, QtWidgets
+
+# Before we do anything else with matplotlib, we need to change the 
+# backend.
+import matplotlib
+matplotlib.use("Qt5Agg")
+
+# Going to place plt in the global namespace for convenience of access
+# from the dataguzzler prompt
+global plt
+from matplotlib import pyplot as plt
+
+
+def EventLoop():
+    qapp = QtWidgets.QApplication.instance()
+    if not qapp:
+        qapp = QtWidgets.QApplication(sys.argv)
+
+    qapp.quitOnLastWindowClosed = False
+
+    setattr(matplotlib.pyplot, "_figure", getattr(matplotlib.pyplot, "figure"))
+
+    def figurewrapper(*args, **kwargs):
+        t = matplotlib.pyplot._figure(*args, **kwargs)
+        t.canvas.mpl_connect("close_event", 
+                             lambda _: t.canvas.manager.window.destroy())
+        return t
+
+    setattr(matplotlib.pyplot, "figure", figurewrapper)
+
+    from dataguzzler_python import Qt5Wrapper as qt5w
+
+    for function in getmembers(matplotlib.pyplot, isfunction):
+        setattr(
+            matplotlib.pyplot,
+            function[0],
+            qt5w.Qt5Wrapper(getattr(matplotlib.pyplot, function[0])),
+        )
+
+    import atexit
+    atexit.register(plt.close)
+
+    qapp.exec_()
+
+
+main_thread.queue_to_run_in_main_thread(EventLoop)
