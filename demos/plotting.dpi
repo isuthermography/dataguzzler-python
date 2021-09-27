@@ -25,19 +25,18 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #########################################################################
 # Change Log
-#     2021-08-24:  File Created (Tyler)
+#     2021-08-24:  File Created (Tyler/UDRI)
 #########################################################################
 """ Matplotlib Plotting for Dataguzzler
 """
 
 import sys
-import threading
 from dataguzzler_python import main_thread
 from inspect import getmembers, isfunction
 
 # Should be fine to import directly from pyqt, but this should help avoid
 # conflicts
-from matplotlib.backends.qt_compat import QtCore, QtWidgets
+from matplotlib.backends.qt_compat import QtWidgets
 
 # Before we do anything else with matplotlib, we need to change the 
 # backend.
@@ -48,7 +47,6 @@ matplotlib.use("Qt5Agg")
 # from the dataguzzler prompt
 global plt
 from matplotlib import pyplot as plt
-
 
 def EventLoop():
     qapp = QtWidgets.QApplication.instance()
@@ -80,6 +78,5 @@ def EventLoop():
     atexit.register(plt.close)
 
     qapp.exec_()
-
 
 main_thread.queue_to_run_in_main_thread(EventLoop)
