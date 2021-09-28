@@ -1,0 +1,22 @@
+from dataguzzler_python import dgpy
+
+
+include(dgpy,"dgpy_startup.dpi") # If you get a NameError here, be sure you are executing this file with dataguzzler-python
+
+include(dgpy,"matplotlib.dpi")
+
+from matplotlib import pyplot as plt
+import numpy as np
+
+plt.ion()
+
+
+a=np.linspace(0,10,100000)
+y=np.sin(a)
+
+for cnt in range(1):
+    plt.plot(a,y)
+    plt.show()
+    pass
+    
+#[ plt.plot(a,y) for cnt in range(100) ]

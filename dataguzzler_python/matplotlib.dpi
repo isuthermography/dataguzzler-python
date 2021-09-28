@@ -32,11 +32,9 @@
 
 import sys
 from dataguzzler_python import main_thread
-from inspect import getmembers, isfunction
 
 # Should be fine to import directly from pyqt, but this should help avoid
 # conflicts
-from matplotlib.backends.qt_compat import QtWidgets
 
 # Before we do anything else with matplotlib, we need to change the 
 # backend.
@@ -49,6 +47,9 @@ global plt
 from matplotlib import pyplot as plt
 
 def EventLoop():
+    from inspect import getmembers, isfunction
+    from matplotlib.backends.qt_compat import QtWidgets
+    import matplotlib
     qapp = QtWidgets.QApplication.instance()
     if not qapp:
         qapp = QtWidgets.QApplication(sys.argv)

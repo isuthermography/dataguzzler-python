@@ -65,10 +65,12 @@ import numbers
 import pint
 import copy
 import collections
+from collections import OrderedDict
 import numpy as np
 from .dgpy import threadsafe
 from .dgpy import Module
 from .context import CurContext
+from .main_thread import main_thread_context
 from matplotlib.backends.qt_compat import QtCore
 from .OpaqueWrapper import OpaqueWrapper, attemptunwrap
 from .remoteproxy import remoteproxy
@@ -105,6 +107,10 @@ def Qt5WrapDescriptor(towrap):
         pass
     return descriptor_wrapper(doc)
 
+def qt5unwrap(wrapperobj):
+    return object.__getattribute__(wrapperobj,"_wrappedobj")
+
+
 def Qt5CensorObj(sourcecontext,destcontext,attrname,obj):
     # The code in this function very closely mirrors that of censorobj in censoring.py
     # If changes are made there, they should probably be made here too
@@ -124,6 +130,16 @@ def Qt5CensorObj(sourcecontext,destcontext,attrname,obj):
         # pre-wrapped object
         return attemptunwrap(obj,destcontext)
 
+    if objclass is Qt5Wrapper:
+        # pre-wrapped qt5 object
+        if destcontext is main_thread_context:
+            return qt5unwrap(obj)
+        else:
+            # already wrapped
+            return obj
+        pass
+    
+        
     if isinstance(obj,type):
         # class objects can be passed around freely
         return obj
@@ -261,33 +277,33 @@ class QtDispatch(QtCore.QObject):
 
     def __init__(self):
         super().__init__()
-        self.invals = {}
-        self.outvals = {}
+        self.invals = OrderedDict()
+        self.outvals = OrderedDict()
         (ctx,pc_compatible)=CurContext()
         self.context = ctx
         self.signal.connect(self._target)
 
     def _target(self):
-        with threading.Lock():
-            queue = [item for item in self.invals if item not in self.outvals]
-            for item in queue:
-                try:
-                    res = self.invals[item]['routine'](*self.invals[item]['args'], **self.invals[item]['kwargs'])
-                    if not hasattr(res,"_dgpy_nowrapping"):
-                        censoredres=Qt5CensorObj(self.context,self.invals[item]['context'],".retval",res)
-                        pass
-                    else:
-                        censoredres=res
-                        pass
-                    self.outvals[item] = censoredres
-                except Exception as err:
-                    import traceback
-                    exc_info = sys.exc_info()
-                    traceback.print_exception(*exc_info)
-                    self.outvals[item] = None
-                finally:
-                    self.invals.pop(item)
-
+        """ Actual function that runs in the main thread (connected to the QT signal) """
+        queue = [item for item in self.invals if item not in self.outvals]
+        for item in queue:
+            try:
+                res = self.invals[item]['routine'](*self.invals[item]['args'], **self.invals[item]['kwargs'])
+                if not hasattr(res,"_dgpy_nowrapping"):
+                    censoredres=Qt5CensorObj(self.context,self.invals[item]['context'],".retval",res)
+                    pass
+                else:
+                    censoredres=res
+                    pass
+                self.outvals[item] = censoredres
+            except Exception as err:
+                import traceback
+                exc_info = sys.exc_info()
+                traceback.print_exception(*exc_info)
+                self.outvals[item] = None
+            finally:
+                self.invals.pop(item)
+                
     def DispatchToQtEventLoop(self, context, routine, routinename, args, kwargs):
         if context is self.context or hasattr(routine,"_dgpy_nowrapping"):
             # No context switch necessary
