@@ -1,0 +1,6 @@
+ * Documentation
+ * Implement a way to properly handle multiline interactive input including pastes (could be through qtconsole)
+ * Implement dropped-connection detection so that resources from a thread that gets stuck and its connection dropped are freed. This would probably require a complete revamp of how connections are handled because the current asyncio method is incapable of detection of a dropped connection during processing. It would require some level of cooperation from wait functions because they would have to cease their wait and raise an exception when the detect a connection dropped flag (thread interruption is not safe in general).
+ * Define a settings-savings protocol (.queryall() method)
+ * Need convention for include-guarding to prevent unintentional multiple include()s of the same functionality?
+ 
