@@ -1,0 +1,12 @@
+# This is a simple example of using dataguzzler-python
+# with the spatialnde2 recording database. 
+
+from dataguzzler_python import dgpy
+import spatialnde2 as snde
+
+include(dgpy,"dgpy_startup.dpi") # If you get a NameError here, be sure you are executing this file with dataguzzler-python
+
+include(dgpy,"Qt.dpi",prefer_pyqt=False) 
+
+include(snde,"recdb_gui.dpi")
+

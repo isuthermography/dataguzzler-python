@@ -25,23 +25,35 @@ def InitFreeThread():
     ThreadContext.execution.insert(0,None)
     pass
 
-def InitCompatibleThread(module,namesuffix):
+def InitCompatibleThread(module,namesuffix,no_thread_will_ever_wait_for_this_thread_while_holding_module_context=False):
     """Use this to initialize a thread that may freely access member variables, etc. of the given module, even though it isn't the primary thread context of the module"""
     context=SimpleContext()
-    InitThreadContext(context,object.__getattribute__(module,"_dgpy_contextname")+namesuffix,compatible=module)
+    InitThreadContext(context,object.__getattribute__(module,"_dgpy_contextname")+namesuffix,compatible=module,no_thread_will_ever_wait_for_this_thread_while_holding_module_context=no_thread_will_ever_wait_for_this_thread_while_holding_module_context)
     PushThreadContext(context)
     pass
 
 
-def InitContext(context,name,compatible=None):
+def ContextCompatibleWith(runningcontext,maincontext):
+    if runningcontext is maincontext:
+        return True
+    if object.__getattribute__(runningcontext,"_dgpy_compatible") is maincontext:
+        return True
+    return False
+    
+
+def InitContext(context,name,compatible=None,no_thread_will_ever_wait_for_this_thread_while_holding_module_context=None):
     object.__setattr__(context,"_dgpy_contextlock",threading.Lock())
     object.__setattr__(context,"_dgpy_contextname",str(name))
     object.__setattr__(context,"_dgpy_compatible",compatible)
+    if compatible is not None:
+        object.__setattr__(context,"_dgpy_no_thread_will_ever_wait_for_this_thread_while_holding_module_context",no_thread_will_ever_wait_for_this_thread_while_holding_module_context)
+        pass
+    
     pass
 
-def InitThreadContext(context,name,compatible=None):
+def InitThreadContext(context,name,compatible=None,no_thread_will_ever_wait_for_this_thread_while_holding_module_context=None):
     InitThread()
-    InitContext(context,name,compatible=compatible)
+    InitContext(context,name,compatible=compatible,no_thread_will_ever_wait_for_this_thread_while_holding_module_context=no_thread_will_ever_wait_for_this_thread_while_holding_module_context)
     pass
 
 
@@ -50,6 +62,10 @@ def PushThreadContext(context):  # Always pair with a PopThreadContext in a fina
     if len(ThreadContext.execution) > 0:
         TopContext = ThreadContext.execution[0]
         if TopContext is not None:
+            if object.__getattribute__(TopContext,"_dgpy_compatible") is not None:
+                if not(object.__getattribute__(TopContext,"_dgpy_no_thread_will_ever_wait_for_this_thread_while_holding_module_context")):
+                    raise RuntimeError("dataguzzler_python.context.PushThreadContext(): Attempt to call an external module from a \"compatible\" thread without the dgpy_no_thread_will_ever_wait_for_this_thread_while_holding_module_context flag set")
+                pass
             object.__getattribute__(TopContext,"_dgpy_contextlock").release()
             pass
         pass
@@ -115,6 +131,7 @@ class SimpleContext(object):
     _dgpy_contextlock=None
     _dgpy_contextname=None
     _dgpy_compatible=None
+    _dgpy_no_thread_will_ever_wait_for_this_thread_while_holding_module_context=None
     pass
 
 

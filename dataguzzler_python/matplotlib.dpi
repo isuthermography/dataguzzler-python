@@ -26,58 +26,97 @@
 #########################################################################
 # Change Log
 #     2021-08-24:  File Created (Tyler/UDRI)
+#     2021-12-29:  Reworked for compatibility with new Qt layer (sdh4)
 #########################################################################
 """ Matplotlib Plotting for Dataguzzler
 """
-
 import sys
-from dataguzzler_python import main_thread
+import threading
 
-# Should be fine to import directly from pyqt, but this should help avoid
-# conflicts
 
-# Before we do anything else with matplotlib, we need to change the 
-# backend.
-import matplotlib
-matplotlib.use("Qt5Agg")
+# Requires Qt loaded first
+include(dgpy,"Qt.dpi")
+from dataguzzler_python import QtWrapper
 
+global matplotlib
 # Going to place plt in the global namespace for convenience of access
 # from the dataguzzler prompt
 global plt
-from matplotlib import pyplot as plt
 
-def EventLoop():
-    from inspect import getmembers, isfunction
-    from matplotlib.backends.qt_compat import QtWidgets
+def matplotlib_startup():
+    global plt 
     import matplotlib
-    qapp = QtWidgets.QApplication.instance()
-    if not qapp:
-        qapp = QtWidgets.QApplication(sys.argv)
+    # Before we do anything else with matplotlib, we need to change the 
+    # backend.
+    matplotlib.use("Qt5Agg")
+    from matplotlib import pyplot as plt
+    from inspect import getmembers, isfunction
 
-    qapp.quitOnLastWindowClosed = False
-
+    
     setattr(matplotlib.pyplot, "_figure", getattr(matplotlib.pyplot, "figure"))
+    
+    #def figurewrapper(*args, **kwargs):
+    #    t = matplotlib.pyplot._figure(*args, **kwargs)
+    #    t.canvas.mpl_connect("close_event", 
+    #                         lambda _: t.canvas.manager.window.destroy())
+    #    return t
 
-    def figurewrapper(*args, **kwargs):
-        t = matplotlib.pyplot._figure(*args, **kwargs)
-        t.canvas.mpl_connect("close_event", 
-                             lambda _: t.canvas.manager.window.destroy())
-        return t
+    #setattr(matplotlib.pyplot, "figure", figurewrapper)
 
-    setattr(matplotlib.pyplot, "figure", figurewrapper)
-
-    from dataguzzler_python import Qt5Wrapper as qt5w
-
-    for function in getmembers(matplotlib.pyplot, isfunction):
+    for function in list(getmembers(matplotlib.pyplot, isfunction)):
         setattr(
             matplotlib.pyplot,
             function[0],
-            qt5w.Qt5Wrapper(getattr(matplotlib.pyplot, function[0])),
+            QtWrapper.QtWrapper(getattr(matplotlib.pyplot, function[0])),
         )
+        
+        
+        pass
 
-    import atexit
-    atexit.register(plt.close)
+    def matplotlib_cleanup():
+        import threading
+        from dataguzzler_python.context import SimpleContext,InitThreadContext,PushThreadContext,PopThreadContext
+        if threading.current_thread() is threading.main_thread():
+            plt.close()
+            pass
+        else:
+            QuitContext=SimpleContext()    
+            InitThreadContext(QuitContext,"dgpy_mpl_quit") # Allow to run stuff from main thread
+            PushThreadContext(QuitContext)
+            plt.close()
+            PopThreadContext()
+            pass
+        
+        
+        pass
+    
+    #import atexit
+    #atexit.register(matplotlib_cleanup)
 
-    qapp.exec_()
+    pass
 
-main_thread.queue_to_run_in_main_thread(EventLoop)
+
+
+if not "matplotlib" in globals():
+    # Still need to load matplotlib
+
+    
+    
+   if threading.current_thread() is threading.main_thread():
+       # In ths case we are running during initialization and
+       # we __are__ the main thread, but the Qt Main Loop
+       # isn't started yet. Thus it is safe just to load
+       # matplotlib now
+
+       matplotlib_startup()
+       pass
+
+   else:
+
+       # Ask Qt to start up matplotlib in the main thread for us
+       
+       QtWrapper(matplotlib_startup)()
+
+       pass
+   pass
+

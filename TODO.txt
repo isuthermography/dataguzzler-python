@@ -4,3 +4,27 @@
  * Define a settings-savings protocol (.queryall() method)
  * Need convention for include-guarding to prevent unintentional multiple include()s of the same functionality?
  
+
+ * QT Principles (proposed):
+    * We should try to work with both PySide2 and PyQt5 (RHEL 8 for example include PyQt5 but not PySide2)
+    * QWidget derived classes must live in the main loop context
+    * Ideally they make only asynchronous calls to dgpy modules, which will be dispatched from some helper thread pool. 
+    * The QT Wrappers module can be used to call QWidget methods back from
+      outside (either synchronously or asynchronously)
+    * Unfortunately this will make widgets unnecessarily complicated
+    * Implement synchronous calls via creating sub-qeventloop's.
+      * Be warned that your widget's C++ base object may disappear (e.g. due to deleteLater())
+        in the middle of your method execution if you make such a synchronous call.
+	The object deletion can be detected by not(shiboken2.isValid(self)) or PyQt5.sip.isdeleted(self)
+	(which we should really wrap for consistency). Otherwise you will get exceptions like
+	"RuntimeError: Internal C++ object already deleted"
+	https://stackoverflow.com/questions/11328219/how-to-know-if-object-gets-deleted-in-python
+     * For matplotlib specifically the callbacks (mpl_connect())  can be treated as asynchronous
+       but need to be specially wrapped so that they don't try to run in the main thread.
+     * Also see for example the bugs described here: https://www.youtube.com/watch?v=ol5IuJyw-Tg : https://bugreports.qt.io/browse/PYSIDE-810 and https://bugreports.qt.io/browse/PYSIDE-813 for illustrations of how tricky some of these things can be. It would appear that thse bugs are fixed in both pyside2 and pyqt5. For PYSIDE-810 at least for pyside2 the fix was explicitly shifting all qwidget destruction to the main thread (in which case we don't have to worry about that ourselves)
+   * spatialnde2 QTRecViewer needs to be run in the main thread. Since spatialnde2 basically doesn't do
+     callbacks except via derived classes, and derived classes shouldn't be calling dgpython modules
+     there isn't much of an issue (and 99% of spatialnde2 would be in other threads anyway!).
+     
+     
+       

@@ -1,19 +1,58 @@
 import sys
+import time
 import os
 import signal
 import queue
 import atexit
 import traceback
+import threading
 
 from .dgpy import SimpleContext,InitContext,PushThreadContext,PopThreadContext
-from .mainloop import do_systemexit
 
 main_thread_queue = queue.Queue()
 main_thread_context = SimpleContext()
 
 InitContext(main_thread_context,"dgpy_main_thread")
 
-def queue_to_run_in_main_thread(callable, *args,dgpy_compatible_context=None,**kwargs):
+def do_systemexit():
+    #PopThreadContext()
+    #sys.stderr.write("Attempting to exit; tid=%d!\n" % (threading.get_ident()))
+    # we need interrupt main thread with hangup signal, because otherwise we get a hang. But for some reason the exitfuncs (writing out readline history) don't get called in that case, so we run them manually
+
+    global exit_flag,exit_function_lock,exit_function
+    
+    if threading.current_thread() is threading.main_thread() or exit_function is None:
+        atexit._run_exitfuncs()
+        if os.name=="nt":
+            os.kill(os.getpid(),signal.CTRL_BREAK_EVENT)
+            pass
+        else:
+            os.kill(os.getpid(),signal.SIGHUP)
+            pass
+        
+        sys.exit(0)
+        pass
+    else:
+
+        # Trigger main loop to exit
+        with exit_function_lock:
+            exit_flag = True
+            ex_fn = exit_function
+            pass
+        ex_fn()
+
+        # Right now all the places we can be called
+        # in this condition just do a return
+        # from the console thread.
+        # So this lets us let the console thread
+        # die if we just return
+        
+        #time.sleep(10)
+        #sys.exit(1)
+    pass
+
+
+def queue_to_run_in_main_thread(exit_function,callable, *args,dgpy_compatible_context=None,**kwargs):
     """This primarily exists to support GUI toolkits that must have 
     their mainloop execute in the original thread that called main().
     Typically you will instantiate your GUI and then call its 
@@ -68,18 +107,30 @@ def queue_to_run_in_main_thread(callable, *args,dgpy_compatible_context=None,**k
     or similar. 
 
     """
-    main_thread_queue.put((callable,args,dgpy_compatible_context,kwargs))
+    main_thread_queue.put((exit_function,callable,args,dgpy_compatible_context,kwargs))
     pass
 
+exit_function_lock = threading.Lock() # locks exit_flag, exit_function
+exit_flag=None
+exit_function = None
 
 def main_thread_run():
+    global exit_function_lock
+    global exit_flag
+    global exit_function
     
     PushThreadContext(main_thread_context)
-    while True:
-        exitflag= False
+    exit_flag= False
+    while not exit_flag:
+        
         dgpy_compatible_context=None
         try:
-            (callable,args,dgpy_compatible_context,kwargs) = main_thread_queue.get()
+            with exit_function_lock:
+                if exit_flag:
+                    break
+            
+                (exit_function,callable,args,dgpy_compatible_context,kwargs) = main_thread_queue.get()
+                pass
             pass
         except KeyboardInterrupt:
             # Exit immediately on Ctrl-C 
@@ -90,6 +141,9 @@ def main_thread_run():
             pass
 
 
+        if exit_flag:
+            break
+        
         if dgpy_compatible_context is not None:
             custom_context = SimpleContext()
             InitContext(custom_context,"dgpy_main_thread_custom",compatible=dgpy_compatible_context)
@@ -116,6 +170,7 @@ def main_thread_run():
                 PopThreadContext()
                 pass
             pass
+        #sys.stderr.write("Main thread function exited; exit_flag = %s\n" % str(exit_flag))
         
         pass
     

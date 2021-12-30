@@ -1,4 +1,5 @@
 from dataguzzler_python import dgpy
+from dataguzzler_python import context
 
 
 include(dgpy,"dgpy_startup.dpi") # If you get a NameError here, be sure you are executing this file with dataguzzler-python
@@ -7,6 +8,7 @@ include(dgpy,"matplotlib.dpi")
 
 from matplotlib import pyplot as plt
 import numpy as np
+
 
 plt.ion()
 

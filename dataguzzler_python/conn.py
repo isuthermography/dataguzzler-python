@@ -376,6 +376,9 @@ class ConnAcceptor(object):
         #sys.stderr.write("run_forever()\n")
         #import pdb
         #pdb.set_trace()
+
+        
+        #PopThreadContext()   # Ideally we'd drop the thread context while waiting so other stuff created in this context can run. But how is this compatible with Python asyncio????
         self.loop.run_forever()
         #sys.stderr.write("close()\n")
         self.loop.close()

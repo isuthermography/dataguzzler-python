@@ -22,11 +22,11 @@ from ..mainloop import PyDGConn,OldDGConn
 from ..conn import process_line
 from ..conn import write_response,render_response
 
-from ..dgpy import SimpleContext
-from ..dgpy import InitThreadContext
-from ..dgpy import PushThreadContext,PopThreadContext
+from ..context import SimpleContext
+from ..context import InitThread,InitThreadContext
+from ..context import PushThreadContext,PopThreadContext
 from ..configfile import DGPyConfigFileLoader
-from ..main_thread import main_thread_run
+from ..main_thread import main_thread_run,main_thread_context
 from ..help import monkeypatch_visiblename
 
 import dataguzzler_python.dgpy as dgpy
@@ -84,12 +84,17 @@ def main(args=None):
     profiling=False
     
     localvars={}
-    
-    ConfigContext=SimpleContext()
-    
-    InitThreadContext(ConfigContext,"dgpy_config") # Allow to run stuff from main thread
-    PushThreadContext(ConfigContext)
 
+    #  Separate config context eliminated because
+    # for QT things created during config would be incompatible with main loop
+    # ... It was a bit superfluous anyway
+    #ConfigContext=SimpleContext()
+    
+    #InitThreadContext(ConfigContext,"dgpy_config") # Allow to run stuff from main thread
+    #PushThreadContext(ConfigContext)
+    InitThread() # Allow stuff to run from main thread
+    PushThreadContext(main_thread_context)
+    
     argc=1
     if args[argc]=="--profile":
         profiling = True

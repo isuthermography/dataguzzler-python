@@ -89,6 +89,12 @@ def censorobj(sourcecontext,destcontext,attrname,obj):
     # array, or array or number with units
     if isinstance(obj,np.ndarray) or isinstance(obj,pint.util.SharedRegistryObject): # pint.util.SharedRegistryObject is a base class of all pint numbers with units
         # Theoretically we should probably check the type of the array
+
+        if hasattr(obj,"flags"):
+            if not obj.flags.writeable:
+                return obj # don't worry about immutable objects
+            pass
+        
         
         # Need to copy array in source context
         if curcontext is not sourcecontext and cc_compatible is not sourcecontext:

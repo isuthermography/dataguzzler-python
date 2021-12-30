@@ -20,6 +20,7 @@ import atexit
 import numpy as np
 
 from .remoteproxy import remoteproxy
+from .main_thread import do_systemexit
 
 from .dgpy import SimpleContext,InitThreadContext,InitThread,InitContext
 from .dgpy import PushThreadContext,PopThreadContext
@@ -87,20 +88,6 @@ def start_tcp_server(hostname,port,**kwargs):
     thread.start()
     return thread
 
-def do_systemexit():
-    #PopThreadContext()
-    #sys.stderr.write("Attempting to exit; tid=%d!\n" % (threading.get_ident()))
-    # we need interrupt main thread with hangup signal, because otherwise we get a hang. But for some reason the exitfuncs (writing out readline history) don't get called in that case, so we run them manually
-    atexit._run_exitfuncs()
-    if os.name=="nt":
-        os.kill(os.getpid(),signal.CTRL_BREAK_EVENT)
-        pass
-    else:
-        os.kill(os.getpid(),signal.SIGHUP)
-        pass
-    
-    sys.exit(0)
-    pass
 
 def console_input_processor(dgpy_config,contextname,localvars,rlcompleter):
     """This is meant to be run from a new thread. """
@@ -119,11 +106,16 @@ def console_input_processor(dgpy_config,contextname,localvars,rlcompleter):
     try:
         while(True):
             try:
+                PopThreadContext();
                 InStr=input("dgpy> ")
                 pass
             except EOFError:
                 # main terminal disconnected: exit
                 do_systemexit()
+                return
+                pass
+            finally:
+                PushThreadContext(InputContext)
                 pass
             
             try:
@@ -134,6 +126,7 @@ def console_input_processor(dgpy_config,contextname,localvars,rlcompleter):
                 pass
             except SystemExit:
                 do_systemexit()
+                return
                 pass
             except Exception as e:
                 sys.stderr.write("Internal error in line processing\n")
