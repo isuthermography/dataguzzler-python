@@ -429,8 +429,9 @@ def DispatchToQtMainThreadLoop(fromcontext, routine, routinename, args, kwargs):
 
     
 
-    waitcontext = PopThreadContext()
-
+    (waitcontext,waitcontext_compatible) = CurContext()
+    
+    PushThreadContext(None)
     try : 
         assert(ContextCompatibleWith(waitcontext,fromcontext))
     
@@ -448,7 +449,7 @@ def DispatchToQtMainThreadLoop(fromcontext, routine, routinename, args, kwargs):
 
         pass
     finally:
-        PushThreadContext(waitcontext)
+        PopThreadContext()
         pass
 
 

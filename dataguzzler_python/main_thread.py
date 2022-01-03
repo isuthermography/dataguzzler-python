@@ -38,9 +38,12 @@ def do_systemexit():
         with exit_function_lock:
             exit_flag = True
             ex_fn = exit_function
+            main_thread_queue.put((None,None,None,None,None))
             pass
-        ex_fn()
-
+        if ex_fn is not None:
+            ex_fn()
+            pass
+        
         # Right now all the places we can be called
         # in this condition just do a return
         # from the console thread.

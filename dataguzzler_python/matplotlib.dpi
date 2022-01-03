@@ -83,8 +83,13 @@ def matplotlib_startup():
             QuitContext=SimpleContext()    
             InitThreadContext(QuitContext,"dgpy_mpl_quit") # Allow to run stuff from main thread
             PushThreadContext(QuitContext)
-            plt.close()
-            PopThreadContext()
+            try:
+                plt.close()
+                pass
+            finally:
+                PopThreadContext()
+                pass
+            
             pass
         
         

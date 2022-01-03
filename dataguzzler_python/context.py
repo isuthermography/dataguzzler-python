@@ -63,7 +63,7 @@ def PushThreadContext(context):  # Always pair with a PopThreadContext in a fina
         TopContext = ThreadContext.execution[0]
         if TopContext is not None:
             if object.__getattribute__(TopContext,"_dgpy_compatible") is not None:
-                if not(object.__getattribute__(TopContext,"_dgpy_no_thread_will_ever_wait_for_this_thread_while_holding_module_context")):
+                if context is not None and not(object.__getattribute__(TopContext,"_dgpy_no_thread_will_ever_wait_for_this_thread_while_holding_module_context")):
                     raise RuntimeError("dataguzzler_python.context.PushThreadContext(): Attempt to call an external module from a \"compatible\" thread without the dgpy_no_thread_will_ever_wait_for_this_thread_while_holding_module_context flag set")
                 pass
             object.__getattribute__(TopContext,"_dgpy_contextlock").release()
