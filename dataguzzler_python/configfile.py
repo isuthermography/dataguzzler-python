@@ -67,8 +67,58 @@ def whofunc(mod,*args):
     """
     return filtered_totallist
 
-def load_source_overriding_parameters(sourcepath,sourcetext,paramdict_keys):
-    """Reads in the given source file. Removes assignments of given
+def scan_source(sourcepath,sourcetext):
+    """Reads in the given text and determines abstract syntax tree.
+    Identifies global parameters and also assignment targets and their
+    type. NoneType is interpreted as a string"""
+    
+    if sourcepath is None:
+        sourcepath="<unknown>"
+        pass
+    
+
+    assignable_param_types={}
+    
+    sourceast=ast.parse(sourcetext,filename=sourcepath)
+
+    globalparams=set([])
+
+    cnt=0
+    while cnt < len(sourceast.body):
+        entry=sourceast.body[cnt]
+
+        if entry.__class__.__name__=="Assign" and len(entry.targets)==1 and entry.targets[0].__class__.__name__=="Name":
+            if entry.value.__class__.__name__=="Constant" and entry.value.value.__class__.__name__=="float":
+                assignable_param_types[entry.targets[0].id] = float
+                pass
+            if entry.value.__class__.__name__=="Constant" and entry.value.value.__class__.__name__=="int":
+                assignable_param_types[entry.targets[0].id] = int
+                pass
+            if entry.value.__class__.__name__=="Constant" and entry.value.value.__class__.__name__=="str":
+                assignable_param_types[entry.targets[0].id] = str
+                pass
+            if entry.value.__class__.__name__=="Constant" and entry.value.value.__class__.__name__=="NoneType":
+                # Treat None as str -- we probably want a filename or similar
+                assignable_param_types[entry.targets[0].id] = str
+                pass
+            pass
+        
+            # print entry.targets
+            
+        if entry.__class__.__name__=="Global":
+            for paramkey in entry.names:
+                # This key declared as a global
+                globalparams.add(paramkey)
+                pass
+            pass
+        cnt+=1
+        pass
+    
+    return (sourceast,globalparams,assignable_param_types)
+    
+
+def modify_source_overriding_parameters(sourcepath,sourceast,paramdict_keys):
+    """Reads in the given syntax tree. Removes assignments of given
     keys. Returns byte-compiled code ready-to-execute (paramdict
     values must be independently provided). """
     #sourcefile=open(sourcepath,"r")
@@ -77,10 +127,6 @@ def load_source_overriding_parameters(sourcepath,sourcetext,paramdict_keys):
     if sourcepath is None:
         sourcepath="<unknown>"
         pass
-    
-    sourceast=ast.parse(sourcetext,filename=sourcepath)
-
-    globalparams=set([])
     
     for paramkey in paramdict_keys:
         gotassigns=0
@@ -95,17 +141,13 @@ def load_source_overriding_parameters(sourcepath,sourcetext,paramdict_keys):
                     gotassigns+=1
                     continue  # bypass cnt increment below
                 pass
-            if entry.__class__.__name__=="Global" and paramkey in entry.names:
-                # This key declared as a global
-                globalparams.add(paramkey)
-                pass
             cnt+=1
             pass
 
         if gotassigns != 1:
             raise ValueError("Overridden parameter %s in %s is not simply assigned exactly once at top level" % (paramkey,sourcepath))
         pass
-    return (compile(sourceast,sourcepath,'exec'),globalparams)
+    return compile(sourceast,sourcepath,'exec')
 
 
 class DGPyConfigFileLoader(importlib.machinery.SourceFileLoader):
@@ -113,18 +155,38 @@ class DGPyConfigFileLoader(importlib.machinery.SourceFileLoader):
     function in __dict__. Note that this also inserts the path
     of the current source file temporarily into sys.path while 
     it is executing"""
+
+    args=None
     paramdict=None
     sourcetext=None
+    sourceast=None
+    globalparams=None
+    assignable_param_types = None
     sourcetext_context=None
     parentmodule=None
     
-    def __init__(self,name,path,sourcetext,sourcetext_context,parentmodule,paramdict):
+    def __init__(self,name,path,sourcetext,sourcetext_context,parentmodule):
         super().__init__(name,path)
-        self.paramdict=paramdict
+        #self.paramdict=paramdict
         self.sourcetext=sourcetext
         self.sourcetext_context=sourcetext_context
         self.parentmodule=parentmodule
+
+        
+        (self.sourceast,self.globalparams,self.assignable_param_types) = scan_source(self.path,self.sourcetext)
+        
         pass
+
+    def get_plausible_params(self):
+        """Return dictionary by parameter name of Python type"""
+
+        return self.assignable_param_types
+    
+    def set_actual_params(self,args,paramdict):
+        self.args=args
+        self.paramdict=paramdict
+        pass
+    
     
     # Overridden create_module() inserts custom elements (such as include())
     # into __dict__ before module executes
@@ -184,8 +246,9 @@ class DGPyConfigFileLoader(importlib.machinery.SourceFileLoader):
             includetext=includefh.read()
             includefh.close()
             #code = compile(includestr,includepath,'exec')
-            
-            (code,globalparams) = load_source_overriding_parameters(includepath,includetext,kwargs)
+
+            (includeast,globalparams,assignable_param_types) = scan_source(includepath,includetext)
+            code = modify_source_overriding_parameters(includepath,includeast,kwargs)
 
             localkwargs = { varname: kwargs[varname] for varname in kwargs if varname not in globalparams }
             globalkwargs = { varname: kwargs[varname] for varname in kwargs if varname in globalparams }
@@ -223,6 +286,7 @@ class DGPyConfigFileLoader(importlib.machinery.SourceFileLoader):
         to given kwarg dict, erasing their simply assigned values if present."""
 
         # Insert explicitly passed parameters into dict
+        module.__dict__["args"]=self.args  # add "args" variable with positional parameters
         module.__dict__.update(self.paramdict)
 
         # insert parentmodule into dict if present (for subproc support)
@@ -230,8 +294,9 @@ class DGPyConfigFileLoader(importlib.machinery.SourceFileLoader):
             module.__dict__["parent"]=self.parentmodule
             pass
 
-        (code,globalparams) = load_source_overriding_parameters(self.path,self.sourcetext,self.paramdict.keys())
+        code = modify_source_overriding_parameters(self.path,self.sourceast,self.paramdict.keys())
         # We don't care about global declarations here because in the main config file everything is global by default
+        # self.globalparams
         exec(code,module.__dict__,module.__dict__)
         pass
     

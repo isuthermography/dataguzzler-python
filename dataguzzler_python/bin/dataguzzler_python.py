@@ -44,7 +44,7 @@ def main(args=None):
         raise ValueError("Insufficient Python version: Requires Python 3.6 or above")
 
     if len(args) < 2:
-        print("Usage: %s [--profile] <config_file.dgp> [arg1:str=value1] [arg2:int=42] [arg3:float=3.1416]" % (args[0]))
+        print("Usage: %s [--profile] <config_file.dgp> [--arg1 string] [--arg2 343] [--arg3 3.1416] [args...]" % (args[0]))
         sys.exit(0)
         pass
 
@@ -100,30 +100,77 @@ def main(args=None):
         profiling = True
         argc += 1
         pass
+
     
     try: 
         configfile=args[argc]
         argc += 1
-        
-        kwargs={}
-        for arg in args[argc:]:
-            # handle named keyword parameters
-            (param_typestr,valuestr) = arg.split("=",1)
-            (param,typestr) = param_typestr.split(":")
+
+        remainingargs = args[argc:]
+
+
+        # define config file... Use custom loader so we can insert "include" function into default dictionary
+        sourcetext=""
+        try:
+            sourcefh = open(configfile)
+            sourcetext = sourcefh.read()
+            sourcefh.close()
+            pass
+        except FileNotFoundError:
+            localvars["__dgpy_last_exc_info"]=sys.exc_info()
+            traceback.print_exc()
             
-            if typestr=="float":
-                kwargs[param]=float(valuestr)
-                pass
-            elif typestr=="int":
-                kwargs[param]=int(valuestr)
-                pass
-            elif typestr=="str":
-                kwargs[param]=valuestr
+            sys.stderr.write("\nRun dgpy.pm() to debug\n")
+            pass
+        
+
+        
+        loader = DGPyConfigFileLoader("dgpy_config",configfile,sourcetext,os.path.split(configfile)[0],None)
+        plausible_params = loader.get_plausible_params()
+
+        kwargs={}
+        argi = 0
+
+        args_out = [ configfile ]
+        
+        
+        while argi < len(remainingargs):
+            # handle named keyword parameters
+
+            arg = remainingargs[argi]
+
+            # check for variable overrides
+            if arg.startswith("--"): # variable override
+                variable_name = arg[2:]
+                equals_index = variable_name.find("=")
+                if equals_index >= 0:
+                    variable_value = variable_name[(equals_index+1):]
+                    variable_name = variable_name[:equals_index]
+                    pass
+                else:
+                    argi+=1
+                    variable_value = remainingargs[argi]
+                    pass
+
+                variable_name=variable_name.replace("-","_") # convert minus to underscore in variable name
+                
+                if variable_name not in plausible_params:
+                    raise ValueError("Variable override parameter --%s is not simply assigned in the dataguzzler-python configuration" % (variable_name))
+
+                target_type = plausible_params[variable_name]
+
+                variable_value = target_type(variable_value) # cast to type evaluated from config file
+
+                kwargs[variable_name]=variable_value
                 pass
             else:
-                raise ValueError("Unknown type string: \"%s\"" % (typestr))
+                # add to args_out
+                args_out.append(arg)
+                pass
+            
+            argi += 1
             pass
-
+        
         if profiling:
             try:
                 import yappi
@@ -151,22 +198,11 @@ def main(args=None):
         ##### (global variables will be in dgpy_config.__dict__) 
         dgpy.dgpy_running=True
         
-        # define config file... Use custom loader so we can insert "include" function into default dictionary
-        sourcetext=""
-        try:
-            sourcefh = open(configfile)
-            sourcetext = sourcefh.read()
-            sourcefh.close()
-            pass
-        except FileNotFoundError:
-            localvars["__dgpy_last_exc_info"]=sys.exc_info()
-            traceback.print_exc()
 
-            sys.stderr.write("\nRun dgpy.pm() to debug\n")
-            pass
-        
+        # pass evaluated parameters to loader
+        loader.set_actual_params(args_out,kwargs)
         spec = importlib.util.spec_from_loader("dgpy_config", #configfile,
-                                               loader=DGPyConfigFileLoader("dgpy_config",configfile,sourcetext,os.path.split(configfile)[0],None,kwargs))
+                                               loader=loader)
         
         # load config file
         dgpy_config = importlib.util.module_from_spec(spec)
