@@ -39,7 +39,8 @@ if not "Qt" in globals():
       from dataguzzler_python import QtWrapper
       #in_sub_thread=False
 
-      
+      #  UseDesktopOpenGL is required for spatialnde2 compatibility
+      Qt.QtCore.QCoreApplication.setAttribute(Qt.QtCore.Qt.AA_UseDesktopOpenGL)
       Qt.QtCore.QCoreApplication.setAttribute(Qt.QtCore.Qt.AA_ShareOpenGLContexts)
       QApp = Qt.QtWidgets.QApplication(sys.argv)
       QApp.setQuitOnLastWindowClosed(False)
