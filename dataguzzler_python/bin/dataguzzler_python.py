@@ -35,6 +35,17 @@ dgpy_config=None
 
 
 def main(args=None):
+
+    # Because dataguzzler-python is aggressively threaded
+    # make sure a single thread won't tend to occupy the
+    # GIL for excessive periods. We upper bound the
+    # switch interval at 1 ms, compared to the 2022 default
+    # of 5 ms.
+    
+    if sys.getswitchinterval() > 1e-3:
+        sys.setswitchinterval(1e-3)
+        pass
+    
     if args is None:
         args=sys.argv
         pass
