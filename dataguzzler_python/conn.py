@@ -147,9 +147,16 @@ def process_line(globaldecls,localdict,linestr):
         elif result_ast.__class__.__name__=="Assign":
             # If we end with an assignment, add additional assignment
             # to assign value of evaluated assignment to __dgpy_resulttemp
-            targetval=copy.deepcopy(result_ast.targets[0])
-            targetval.ctx=ast.Load() 
-            lineast.body.append(ast.Assign(targets=[ast.Name(id="__dgpy_resulttemp",ctx=ast.Store(),lineno=result_ast.lineno,col_offset=0)],value=targetval,lineno=result_ast.lineno,col_offset=0))
+
+            # But this is not really compatible with tuple assignment
+            # so we don't do it in that case
+
+            if result_ast.targets[0].__class__.__name__ != 'Tuple':
+                targetval=copy.deepcopy(result_ast.targets[0])
+                targetval.ctx=ast.Load() 
+                lineast.body.append(ast.Assign(targets=[ast.Name(id="__dgpy_resulttemp",ctx=ast.Store(),lineno=result_ast.lineno,col_offset=0)],value=targetval,lineno=result_ast.lineno,col_offset=0))
+                pass
+            
             pass
         
         localdict["__dgpy_resulttemp"]=None
@@ -158,6 +165,7 @@ def process_line(globaldecls,localdict,linestr):
         #sys.stderr.write("Exec!\n")
         #sys.stderr.flush()
         exec(compile(lineast,"<interactive>","exec"),dgpy_config.__dict__,localdict)
+        
         #sys.stderr.write("Exec finished!\n")
         #sys.stderr.flush()
 
