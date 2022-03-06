@@ -53,7 +53,7 @@ Qt = None
 try: 
     Qt = importlib.import_module(selected_bindings)
     pass
-except ImportError(origexcept):
+except ImportError as origexcept:
     # Attempt swap
     if selected_bindings == "PySide2":
         alternative_bindings = "PyQt5"
