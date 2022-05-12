@@ -2,6 +2,8 @@ import sys
 import threading
 import numpy as np
 
+from . import get_snde_or_none
+
 # For any thread, ThreadContext.execution
 # is a stack of objects, such as PyDGConn, or a dgpy.Module
 # representing the current execution context of the module.
@@ -15,6 +17,11 @@ ThreadContext=threading.local()
 
 def InitThread():
     ThreadContext.execution=[]  # Create new context stack
+
+    snde = get_snde_or_none()
+    if snde is not None:
+        snde.set_thread_name(None,"dgpy_None")
+        pass
     pass
 
 
@@ -23,6 +30,12 @@ def InitFreeThread():
     but initialized with no context of its own"""
     InitThread()
     ThreadContext.execution.insert(0,None)
+
+    snde = get_snde_or_none()
+    if snde is not None:
+        snde.set_thread_name(None,"dgpy_None")
+        pass
+
     pass
 
 def InitCompatibleThread(module,namesuffix,no_thread_will_ever_wait_for_this_thread_while_holding_module_context=False):
@@ -59,7 +72,11 @@ def InitThreadContext(context,name,compatible=None,no_thread_will_ever_wait_for_
 
 
 def PushThreadContext(context):  # Always pair with a PopThreadContext in a finally clause
-    if len(ThreadContext.execution) > 0:
+    if not hasattr(ThreadContext,"execution"):
+        ThreadContext.execution=[]
+        pass
+    
+    if len(ThreadContext.execution) > 0: 
         TopContext = ThreadContext.execution[0]
         if TopContext is not None:
             if object.__getattribute__(TopContext,"_dgpy_compatible") is not None:
@@ -74,6 +91,17 @@ def PushThreadContext(context):  # Always pair with a PopThreadContext in a fina
         object.__getattribute__(context,"_dgpy_contextlock").acquire()
         pass
     ThreadContext.execution.insert(0,context)
+
+    snde = get_snde_or_none()
+    if snde is not None:
+        if context is not None:
+            snde.set_thread_name(None,object.__getattribute__(context,"_dgpy_contextname"))
+            pass
+        else:
+            snde.set_thread_name(None,"dgpy_None")
+            pass
+        pass
+
     pass
 
 def PopThreadContext():
@@ -82,13 +110,27 @@ def PopThreadContext():
         object.__getattribute__(context,"_dgpy_contextlock").release()
         pass
     
+    snde = get_snde_or_none()
     if len(ThreadContext.execution) > 0:
         TopContext = ThreadContext.execution[0]
         if TopContext is not None:
             object.__getattribute__(TopContext,"_dgpy_contextlock").acquire()
             pass
+
+        if snde is not None:
+            if TopContext is not None:
+                snde.set_thread_name(None,object.__getattribute__(TopContext,"_dgpy_contextname"))
+                pass
+            else:
+                snde.set_thread_name(None,"dgpy_None")
+                pass
+            pass
         pass
-    
+    else:
+        if snde is not None:
+            snde.set_thread_name(None,"dgpy_None")
+            pass
+        pass
     return context
 
 

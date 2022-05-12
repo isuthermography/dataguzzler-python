@@ -9,10 +9,21 @@ import threading
 
 from .dgpy import SimpleContext,InitContext,PushThreadContext,PopThreadContext
 
+
+# Initialization runs in the initialization context
+
+initialization_context = SimpleContext()
+InitContext(initialization_context,"dgpy_initialization")
+
+
+# Then we spin off the main thread in the main_thread_context
+# running whatever is sent to us in the main_thread_queue
 main_thread_queue = queue.Queue()
 main_thread_context = SimpleContext()
 
 InitContext(main_thread_context,"dgpy_main_thread")
+
+
 
 def do_systemexit():
     #PopThreadContext()
@@ -21,7 +32,8 @@ def do_systemexit():
 
     global exit_flag,exit_function_lock,exit_function
     
-    if threading.current_thread() is threading.main_thread() or exit_function is None:
+    if threading.current_thread() is threading.main_thread(): # or exit_function is None:
+        #sys.stderr.write("do_systemexit() from main thread\n")
         atexit._run_exitfuncs()
         if os.name=="nt":
             os.kill(os.getpid(),signal.CTRL_BREAK_EVENT)
@@ -33,6 +45,7 @@ def do_systemexit():
         sys.exit(0)
         pass
     else:
+        #sys.stderr.write("do_systemexit() triggering main loop to exit\n")
 
         # Trigger main loop to exit
         with exit_function_lock:
@@ -131,9 +144,10 @@ def main_thread_run():
             with exit_function_lock:
                 if exit_flag:
                     break
-            
-                (exit_function,callable,args,dgpy_compatible_context,kwargs) = main_thread_queue.get()
                 pass
+            (exit_function,callable,args,dgpy_compatible_context,kwargs) = main_thread_queue.get()
+            #sys.stderr.write("Main thread got entry in main_thread_queue: %s\n" % (str((exit_function,callable,args,dgpy_compatible_context,kwargs))))
+            
             pass
         except KeyboardInterrupt:
             # Exit immediately on Ctrl-C 
@@ -176,5 +190,7 @@ def main_thread_run():
         #sys.stderr.write("Main thread function exited; exit_flag = %s\n" % str(exit_flag))
         
         pass
+
+    do_systemexit()
     
     pass

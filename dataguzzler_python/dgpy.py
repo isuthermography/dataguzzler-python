@@ -28,8 +28,15 @@ from .OpaqueWrapper import OpaqueWrapper,forceunwrap
 #    sys.stderr.write("dgpy: limatix not available; dc_value units will not be supported\n")
 #    pass
 
-import pint # units library... so we can use isinstance() below. 
 
+def get_pint_util_SharedRegistryObject():
+    if "pint" in sys.modules:        
+        return sys.modules["pint"].util.SharedRegistryObject
+        pass
+    else:
+        return type(None)
+        pass
+    pass
 
 
 dgpy_running=False # Flag set by bin/dataguzzler_python.py that indicates 

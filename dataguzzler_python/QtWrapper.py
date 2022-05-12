@@ -64,15 +64,16 @@ import os
 import threading
 import types
 import numbers
-import pint
 import copy
 import collections
 from collections import OrderedDict
 import numpy as np
 from .dgpy import threadsafe
 from .dgpy import Module
+from .dgpy import get_pint_util_SharedRegistryObject
+
 from .context import CurContext,PushThreadContext,PopThreadContext,ContextCompatibleWith,FormatCurContext
-from .main_thread import main_thread_context
+from .main_thread import initialization_context,main_thread_context
 #from matplotlib.backends.qt_compat import QtCore
 from .OpaqueWrapper import OpaqueWrapper, attemptunwrap
 from .remoteproxy import remoteproxy
@@ -171,6 +172,12 @@ def QtCensorObj(sourcecontext,destcontext,attrname,obj):
     if obj is type or obj is None:
         return obj # never need to wrap "type" or None
 
+    if objclass.__module__ == "spatialnde2":
+        # Spatialnde2 wrapped objects are (generally)
+        # thread safe so we just pass them through ere
+        return obj
+    
+    
     if type(obj) is Module:
         return obj  # Don't need to wrap module metaclass (below)
 
@@ -189,7 +196,7 @@ def QtCensorObj(sourcecontext,destcontext,attrname,obj):
     (curcontext, cc_compatible)=CurContext()
     
     # array, or array or number with units
-    if isinstance(obj,np.ndarray) or isinstance(obj,pint.util.SharedRegistryObject): # pint.util.SharedRegistryObject is a base class of all pint numbers with units
+    if isinstance(obj,np.ndarray) or isinstance(obj,get_pint_util_SharedRegistryObject()): # pint.util.SharedRegistryObject is a base class of all pint numbers with units
         # Theoretically we should probably check the type of the array
         
         if hasattr(obj,"flags"):
@@ -287,7 +294,8 @@ class QtDispatch(QtCore.QObject):
 
     def __init__(self):
         super().__init__()
-        (self.context,compatible) = CurContext()
+        #(self.context,compatible) = CurContext()
+        self.context = main_thread_context
         self.queue_needs_dispatch.connect(self.process_dispatch_queue)        
         pass
 
@@ -468,8 +476,8 @@ def QtWrapper_dispatch(wrapperobj,methodname, *args, **kwargs):
     
     wrappedobj = object.__getattribute__(wrapperobj,"_wrappedobj")
     (originating_context,compatible) = CurContext()
-    if CurContext()[0] == dispatcher.context:
-        # Already in main thread context
+    if originating_context == dispatcher.context or originating_context == initialization_context:
+        # Already in main thread or initialization context
         return getattr(wrappedobj,methodname)(*args,**kwargs)
     
     return DispatchToQtMainThreadLoop(originating_context,lambda *args,**kwargs: getattr(wrappedobj,methodname)(*args, **kwargs),methodname,args,kwargs)

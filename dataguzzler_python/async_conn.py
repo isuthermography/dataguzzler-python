@@ -20,7 +20,8 @@ import struct
 import numbers
 
 import numpy as np
-import pint
+
+from .dgpy import get_pint_util_SharedRegistryObject
 
 from .remoteproxy import remoteproxy
 from . import dgpy
@@ -170,7 +171,7 @@ class PyDGAsyncConn(DGConn):
             sys.stderr.write("get_proxy_if_needed on %s\n" % (object.__getattribute__(ret,"__class__").__name__))
             pass
         
-        if ret is None or ret is type or isinstance(ret,numbers.Number) or isinstance(ret,str) or isinstance(ret,bytes) or isinstance(ret,np.ndarray) or isinstance(ret,pint.util.SharedRegistryObject) or isinstance(ret,bool) :
+        if ret is None or ret is type or isinstance(ret,numbers.Number) or isinstance(ret,str) or isinstance(ret,bytes) or isinstance(ret,np.ndarray) or isinstance(ret,get_pint_util_SharedRegistryObject()) or isinstance(ret,bool) :
             # Simple numbers/strings/other base types/numpy arrays/unit quantities: Do not proxy, just let them pickle
             return ret
 

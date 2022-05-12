@@ -22,14 +22,15 @@ from ..mainloop import PyDGConn,OldDGConn
 from ..conn import process_line
 from ..conn import write_response,render_response
 
-from ..context import SimpleContext
+from ..context import SimpleContext,InitContext
 from ..context import InitThread,InitThreadContext
 from ..context import PushThreadContext,PopThreadContext
 from ..configfile import DGPyConfigFileLoader
-from ..main_thread import main_thread_run,main_thread_context
+from ..main_thread import main_thread_run,initialization_context
 from ..help import monkeypatch_visiblename
 
 import dataguzzler_python.dgpy as dgpy
+
 
 dgpy_config=None
 
@@ -104,7 +105,7 @@ def main(args=None):
     #InitThreadContext(ConfigContext,"dgpy_config") # Allow to run stuff from main thread
     #PushThreadContext(ConfigContext)
     InitThread() # Allow stuff to run from main thread
-    PushThreadContext(main_thread_context)
+    PushThreadContext(initialization_context)
     
     argc=1
     if args[argc]=="--profile":

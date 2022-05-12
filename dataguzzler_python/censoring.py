@@ -8,7 +8,8 @@ import collections
 
 
 import numpy as np
-import pint
+#import pint
+from .dgpy import get_pint_util_SharedRegistryObject
 
 from .dgpy import Module
 from .dgpy import threadsafe
@@ -33,6 +34,9 @@ def censorobj(sourcecontext,destcontext,attrname,obj):
     # that can be unwrapped only by methods of our module
 
     # May be called from either context... needs to be thread safe
+
+    # Note: QtCensorObj in QtWrapper largely parallels this
+    # changes in this should probably also be made in QtCensorObj()
 
     if sourcecontext is destcontext or (destcontext is not None and sourcecontext is object.__getattribute__(destcontext,"_dgpy_compatible")):
         return obj # nothing to do!
@@ -70,6 +74,11 @@ def censorobj(sourcecontext,destcontext,attrname,obj):
     if obj is type or obj is None:
         return obj # never need to wrap "type" or None
 
+    if objclass.__module__ == "spatialnde2":
+        # Spatialnde2 wrapped objects are (generally)
+        # thread safe so we just pass them through ere
+        return obj
+    
     if type(obj) is Module:
         return obj  # Don't need to wrap module metaclass (below)
 
@@ -87,7 +96,7 @@ def censorobj(sourcecontext,destcontext,attrname,obj):
     (curcontext, cc_compatible)=CurContext()
     
     # array, or array or number with units
-    if isinstance(obj,np.ndarray) or isinstance(obj,pint.util.SharedRegistryObject): # pint.util.SharedRegistryObject is a base class of all pint numbers with units
+    if isinstance(obj,np.ndarray) or isinstance(obj,get_pint_util_SharedRegistryObject()): # pint.util.SharedRegistryObject is a base class of all pint numbers with units
         # Theoretically we should probably check the type of the array
 
         if hasattr(obj,"flags"):
