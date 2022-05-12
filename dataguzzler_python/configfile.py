@@ -167,7 +167,7 @@ class DGPyConfigFileLoader(importlib.machinery.SourceFileLoader):
     
     def __init__(self,name,path,sourcetext,sourcetext_context,parentmodule):
         super().__init__(name,path)
-        #self.paramdict=paramdict
+        self.paramdict={}
         self.sourcetext=sourcetext
         self.sourcetext_context=sourcetext_context
         self.parentmodule=parentmodule

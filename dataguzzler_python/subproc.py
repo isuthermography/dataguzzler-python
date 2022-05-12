@@ -250,7 +250,7 @@ def subprocess_code(contextdir,dgpfilename,dgpcontent,child_conn_receiver, child
     
 
     spec = importlib.util.spec_from_loader("dgpy_config", #configfile,
-                                           loader=DGPyConfigFileLoader("dgpy_config",dgpfilename,dgpcontent,contextdir,parentmodule,{}),
+                                           loader=DGPyConfigFileLoader("dgpy_config",dgpfilename,dgpcontent,contextdir,parentmodule),
                                            is_package=False)
     
     # load config file

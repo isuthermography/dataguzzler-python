@@ -1,4 +1,10 @@
+import os
 from dataguzzler_python.subproc import subproc
+
+contextdir = os.path.dirname(os.path.abspath(__file__))
+
+gpib_addr = None
+
 SubProc = subproc.from_immediate("SubProc",r"""
 from dataguzzler_python import dgpy
 include(dgpy,"dgpy_startup.dpi")
@@ -9,7 +15,8 @@ rm = ResourceManager()
 
 inst = rm.open_resource("%s")
 
-""" %(gpib_addr),debug=False)
+""" %(gpib_addr),debug=False, contextdir=contextdir)
 
-# Make shutter directly accessible from console
+# Make instrument directly accessible from console
+global inst
 inst = SubProc.inst
