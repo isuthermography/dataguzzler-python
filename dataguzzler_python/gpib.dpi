@@ -1,0 +1,15 @@
+from dataguzzler_python.subproc import subproc
+SubProc = subproc.from_immediate("SubProc",r"""
+from dataguzzler_python import dgpy
+include(dgpy,"dgpy_startup.dpi")
+
+from pyvisa import ResourceManager
+
+rm = ResourceManager()
+
+inst = rm.open_resource("%s")
+
+""" %(gpib_addr),debug=False)
+
+# Make shutter directly accessible from console
+inst = SubProc.inst
