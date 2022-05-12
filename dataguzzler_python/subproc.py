@@ -28,11 +28,9 @@ def determine_contextdir():
     context representing the context for loading relative to the 
     config file currently being processed. Returns None if 
     the variable cannot be found"""
-    
     callerframe=inspect.stack(context=0)[2].frame
-    localvars = inspect.getargvalues(callerframe).locals
-    if "_contextstack" in localvars:
-        return localvars["_contextstack"][-1]
+    if "_contextstack" in callerframe.f_globals:
+        return callerframe.f_globals["_contextstack"][-1]
     return None
 
 
