@@ -73,6 +73,8 @@ def matplotlib_startup():
         
         pass
 
+    plt.ion() # default to interactive mode
+
     def matplotlib_cleanup():
         import threading
         from dataguzzler_python.context import SimpleContext,InitThreadContext,PushThreadContext,PopThreadContext
