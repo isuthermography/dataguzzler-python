@@ -106,9 +106,9 @@ and libraries:
   * numpy: Python numerical toolkit
   * pint: Python units library
   * PySide2 QT bindings (optional): GUI Python integration
-  * Matplotlib (optional): Interactive plotting
+  * Matplotlib (optional; strongly recommended): Interactive plotting
   * pySerial (optional): Interface to physical or virtual (USB) serial ports.
-  * SpatialNDE2 (optional): Management and viewing of recorded data
+  * SpatialNDE2 (optional; strongly recommended): Management and viewing of recorded data
 
 On Windows most of these dependencies are usually most easily
 installed using the Anaconda package manager.

@@ -5,6 +5,7 @@ can control and/or capture data from your measurement hardware, and
 often additional higher-level *modules* that integrate functionality
 provided by the hardware into some sort of virtual instrument.
 
+For basic information see: doc/source/about.rst
 For installation instructions see: doc/source/installation.rst
 For a quickstart guide see: doc/source/quickstart.rst
 

@@ -3,14 +3,25 @@ Installation
 
 Dataguzzler-Python is distributed as a Python source tree. You will
 need a Python installation (at least v3.8). Also install the
-prerequisite dependencies listed above. Installation is accomplished by running
+prerequisite dependencies listed in the about section (above or
+in ``about.rst``.
+
+If you are also installing SpatialNDE2 (highly recommended), you
+may want to do that first, as on some platforms (Windows)
+the recommended procedure involves creating a virtual Python
+environment, and you will wanto to install Dataguzzler-Python
+into the same environment. 
+
+
+Installation is accomplished by running
 (possibly as root or Administrator):
 
 ::
 
    python setup.py install
 
-from a suitable terminal, command prompt, or Anaconda prompt.  In
+from a suitable terminal, command prompt, or Anaconda prompt corresponding
+to the desired installation enviroment.  In
 general, the order of installing Dataguzzler-Python compared to
 the dependencies (except Python) doesn't matter, but obviously
 a dependency needs to be installed in order to use its
