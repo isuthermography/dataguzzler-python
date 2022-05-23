@@ -35,7 +35,7 @@ print("The recordings from the file are located in a globalrevision \"g\".")
 print("You can interact with them in the viewer, or use them from Python:")
 print("You can list them with g.list_recordings() and g.list_recording_refs())")
 print(" ")
-print("You can also use mattplotlib, e.g.:")
+print("You can also use matplotlib, e.g.:")
 print("plt.plot(g.get_recording_ref(\"/my_channel\").data())")
 
       
