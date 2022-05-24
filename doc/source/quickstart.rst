@@ -21,11 +21,12 @@ Dataguzzler-Python module.
 From the Dataguzzler-Python ``demos`` directory:
 
 ::
+   
    dataguzzler-python configdemo.dgp
 
 The response represents the dummy hardware initialization and an interactive Dataguzzler-Python REPL (Read Evaluate Print Loop) prompt:
-
 ::
+   
    Init the hardware
    dgpy> 
 
@@ -51,6 +52,7 @@ If you type ``Demo`` and press ``<Enter>``, Dataguzzler-Python will
 respond with a header and the object's representation (Python ``repr()``):
 
 ::
+   
    dgpy> Demo
    200 000000000050 <dgpy_config.DemoClass object at 0x7fb583f33b20>
    dgpy> 
@@ -59,6 +61,7 @@ You can issue commands such as calling the object methods ``.read()``
 and ``.write()``:
 
 ::
+   
    dgpy> Demo.read()
    read from the hardware
    200 000000000006 None
@@ -79,6 +82,7 @@ able to introspect an object to see what we might do with it. Some such
 functionality is built into Python, such as the ``dir()`` function:
 
 ::
+   
    dgpy> dir(Demo)
    200 000000000452 ['__call__', '__class__', '__delattr__', '__dict__', '__dir__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__gt__', '__hash__', '__init__', '__init_subclass__', '__le__', '__lt__', '__module__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__sizeof__', '__str__', '__subclasshook__', '__weakref__', '_dgpy_compatible', '_dgpy_contextlock', '_dgpy_contextname', 'help', 'read', 'who', 'write']
    dgpy> 
@@ -87,6 +91,7 @@ However, the output of ``dir()`` is polluted by a lot of internal-use-only attri
 Dataguzzler-Python provides a function ``who()`` that hides the irrelevancies:
 
 ::
+   
    dgpy> who(Demo)
    200 000000000019 ['read', 'write']
    dgpy> 
@@ -105,6 +110,7 @@ For convenience and to reduce typing, ``.who()``, ``.dir()``, and
 so you don't have move the cursor all the way to the front of the line to get more information, e.g.
 
 ::
+   
    dgpy> Demo.who()
    200 000000000019 ['read', 'write']
    dgpy> 
@@ -118,6 +124,7 @@ hardware (if you issue way too many commands it may freeze if the loopback
 buffer overflows, since nothing is emptying the written commands). Try:
 
 ::
+   
    $ dataguzzler-python shutter_demo.dgp
    dataguzzler-python shutter demo
    -------------------------------

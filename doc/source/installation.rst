@@ -42,7 +42,7 @@ are installed in the same environment.
 Installing Acquisition Libraries
 --------------------------------
 
-Acquisition libraries such as for Gage (DynamicSignals) cards and the
+Acquisition libraries such as for GaGe (Vitrek) cards and the
 Azure Kinect camera can be installed before or after
 Dataguzzler-Python. However any libraries that use the C/C++
 SpatialNDE2 API need to be installed after SpatialNDE2. In addition,
