@@ -390,8 +390,8 @@ SpatialNDE2 and locking is unnecessary for interactive use almost
 all conditions and storage managers).  For example::
   
   locktokens = recdb.lockmgr.lock_recording_refs([
-    (test_ref, True),  
-  ])
+    (test_ref, True),
+  ],False)
 
 You provide a sequence of (recording reference, read/write) pairs
 where the second element is false for read and true for right.  It is
@@ -408,7 +408,7 @@ locking order so the context switch involved in calling another module would be 
 
 You can obtain a numpy array for the recording array with the ``.data()`` method::
 
-  test_ref.data()[:] = np.sin(np.arange(rec_len),dtype='d')) 
+  test_ref.data()[:] = np.sin(np.arange(rec_len),dtype='d') 
 
 After unlocking all locks you can mark the recording data as ready with the ``mark_data_ready()`` method of
 the recording (Python)::
