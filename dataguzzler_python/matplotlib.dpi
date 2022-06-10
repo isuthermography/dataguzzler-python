@@ -74,6 +74,9 @@ def matplotlib_startup():
         pass
 
     plt.ion() # default to interactive mode
+    # Call QApp.processEvents() immedately to ease debugging, per
+    # https://stackoverflow.com/questions/56686603/how-to-avoid-sigpipe-due-to-a-timeout-when-debugging-an-x11-program
+    QApp.processEvents()
 
     def matplotlib_cleanup():
         import threading

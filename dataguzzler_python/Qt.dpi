@@ -45,8 +45,9 @@ if not "Qt" in globals():
       Qt.QtCore.QCoreApplication.setAttribute(Qt.QtCore.Qt.AA_ShareOpenGLContexts)
       QApp = Qt.QtWidgets.QApplication(sys.argv)
       QApp.setQuitOnLastWindowClosed(False)
-      
-      
+      # Call QApp.processEvents() immedately to ease debugging, per
+      # https://stackoverflow.com/questions/56686603/how-to-avoid-sigpipe-due-to-a-timeout-when-debugging-an-x11-program
+      QApp.processEvents()
       
       # Queue take over of main thread with the Qt event loop   
       main_thread.queue_to_run_in_main_thread(lambda: Qt.QtCore.QMetaObject.invokeMethod(QApp,"quit",Qt.QtCore.Qt.QueuedConnection),Qt.QtEventLoop,QApp)
@@ -71,6 +72,9 @@ if not "Qt" in globals():
          QCoreApplication.setAttribute(Qt.AA_ShareOpenGLContexts)
          QApp = QtWidgets.QApplication(sys.argv)
          QApp.setQuitOnLastWindowClosed(False)
+         # Call QApp.processEvents() immedately to ease debugging, per
+         # https://stackoverflow.com/questions/56686603/how-to-avoid-sigpipe-due-to-a-timeout-when-debugging-an-x11-program
+         QApp.processEvents()
          
          Qt.QtEventLoop(QApp)
          pass
