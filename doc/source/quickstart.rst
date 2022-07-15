@@ -252,7 +252,7 @@ To match the screenshot you may need to reduce the default contrast
 You can also access and view the data directly. The ``nde_viewer.dgp``
 configuration automatically stores the ``globalrevision`` with the
 loaded data in the variable ``g`` (alternatively you could obtain
-the latest data with ``g=snde.latest_globalrev()``).
+the latest data with ``g=recdb.latest_globalrev()``).
 
 You can see the different recordings that are defined with
 ``g.list_recordings()`` ::
@@ -342,7 +342,7 @@ To define a new channel and create a recording with an array of 32 bit floating 
   
   transact = recdb.start_transaction();
   testchan = recdb.define_channel("/test channel", "main", recdb.raw());
-  test_ref = snde.create_recording_ref(recdb,testchan,recdb.raw(),snde.SNDE_RTN_FLOAT32)
+  test_ref = snde.create_ndarray_ref(recdb,testchan,recdb.raw(),snde.SNDE_RTN_FLOAT32)
   globalrev = transact.end_transaction()
 
 The above code starts a new transaction, defines a new channel,
