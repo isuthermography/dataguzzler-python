@@ -1,0 +1,13 @@
+from dataguzzler_python import dgpy
+
+include(dgpy,"dgpy_startup.dpi") # If you get a NameError here, be sure you are executing this file with dataguzzler-python
+
+include(dgpy,"matplotlib.dpi")
+
+import spatialnde2 as snde
+
+include(snde,"recdb_gui.dpi")
+
+from dummydata import DummyData
+
+DD=DummyData("DD", recdb, 1000)
