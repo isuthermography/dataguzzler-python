@@ -73,7 +73,7 @@ from .dgpy import Module
 from .dgpy import get_pint_util_SharedRegistryObject
 
 from .context import CurContext,PushThreadContext,PopThreadContext,ContextCompatibleWith,FormatCurContext
-from .main_thread import initialization_context,main_thread_context
+from .main_thread import initialization_main_thread_context,main_thread_context
 #from matplotlib.backends.qt_compat import QtCore
 from .OpaqueWrapper import OpaqueWrapper, attemptunwrap
 from .remoteproxy import remoteproxy
@@ -476,7 +476,7 @@ def QtWrapper_dispatch(wrapperobj,methodname, *args, **kwargs):
     
     wrappedobj = object.__getattribute__(wrapperobj,"_wrappedobj")
     (originating_context,compatible) = CurContext()
-    if originating_context == dispatcher.context or originating_context == initialization_context:
+    if originating_context == dispatcher.context or originating_context == initialization_main_thread_context:
         # Already in main thread or initialization context
         return getattr(wrappedobj,methodname)(*args,**kwargs)
     

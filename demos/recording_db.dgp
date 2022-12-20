@@ -10,3 +10,4 @@ include(dgpy,"Qt.dpi",prefer_pyqt=False)
 
 include(snde,"recdb_gui.dpi")
 
+dgpython_release_main_thread() # allow qt main loop to execute in parallel with subsequent initialization.
