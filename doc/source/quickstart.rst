@@ -218,9 +218,9 @@ objects.
 In order to use the SpatialNDE2 recording database, it must be
 installed in the same Python installation or virtual environment as
 Dataguzzler-Python. You can try the very simple example configuration
-and ``.nde`` file loader in the ``demos/`` directory with: ::
+and ``.ande`` file loader in the ``demos/`` directory with: ::
   
-   $ dataguzzler-python nde_viewer.dgp SCANINFO_EG5_singleframe.nde
+   $ dataguzzler-python ande_viewer.dgp SCANINFO_EG5_singleframe.ande
 
 You will perhaps see some information on any accelerated compute
 (OpenCL) devices found, and then get a ``dgpy>`` prompt and
@@ -237,11 +237,11 @@ Once created, channels can be selected (color change) and enabled (solid
 dot) on the left hand side of the viewer
 window. The viewer window always shows the most recent global revision
 for which all data is ready and all processing is complete. The screenshot
-below illustrates viewing ``SCANINFO_EG5_singleframe.nde`` and
+below illustrates viewing ``SCANINFO_EG5_singleframe.ande`` and
 colormapping the ``ss_greensinversion`` channel which represents
 results of a thermography model-based inversion of impact damage.
 
-.. image:: nde_viewer_screenshot.png
+.. image:: ande_viewer_screenshot.png
    :width: 800
    :alt: Screenshot of viewer window and command prompt.
 
@@ -249,7 +249,7 @@ To match the screenshot you may need to reduce the default contrast
 (top bar icon with two gray vertical strips) and switch the colormap
 (red-green-blue icon).
 
-You can also access and view the data directly. The ``nde_viewer.dgp``
+You can also access and view the data directly. The ``ande_viewer.dgp``
 configuration automatically stores the ``globalrevision`` with the
 loaded data in the variable ``g`` (alternatively you could obtain
 the latest data with ``g=recdb.latest_globalrev()``).
@@ -317,9 +317,9 @@ The metadata can be printed in human readable form by converting it to a string:
 
 Note the axis label and position information embedded in the metadata.
  
-The ``nde_viewer.dgp`` Dataguzzler-Python configuration also includes
+The ``ande_viewer.dgp`` Dataguzzler-Python configuration also includes
 support for interactive plotting with Matplotlib. This is enabled
-by the ``include(dgpy,"matplotlib.dpi")`` line inside ``nde_viewer.dgp``.
+by the ``include(dgpy,"matplotlib.dpi")`` line inside ``ande_viewer.dgp``.
 To new the same data in Matplotlib: ::
   
    dgpy> plt.imshow(r.data().T,origin="lower")
