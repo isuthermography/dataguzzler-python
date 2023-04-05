@@ -301,16 +301,16 @@ The metadata can be printed in human readable form by converting it to a string:
 
    dgpy> str(r.rec.metadata)
    200 000000000434 r"""Coord3: STR "Depth Index"
-   ande_array-axis1_step: DBLUNITS 0.0005 meters
+   ande_array-axis1_scale: DBLUNITS 0.0005 meters
    IniVal3: DBL 0
    Units3: STR "unitless"
    ande_array-axis0_coord: STR "X Position"
-   ande_array-axis0_inival: DBLUNITS 0.000125 meters
-   ande_array-axis1_inival: DBLUNITS 0.000125 meters
+   ande_array-axis0_offset: DBLUNITS 0.000125 meters
+   ande_array-axis1_offset: DBLUNITS 0.000125 meters
    Step3: DBL 1
    ande_array-ampl_coord: STR "Heating intensity"
    ande_array-ampl_units: STR "J/m^2"
-   ande_array-axis0_step: DBLUNITS 0.0005 meters
+   ande_array-axis0_scale: DBLUNITS 0.0005 meters
    ande_array-axis1_coord: STR "Y Position"
    """
    dgpy>
@@ -366,7 +366,7 @@ recording reference with data. First, it is common to
 attach metadata to the recording, such as for axis information::
 
   test_rec_metadata = snde.constructible_metadata()
-  test_rec_metadata.AddMetaDatum(snde.metadatum_dbl("ande_array-axis0_inival",0.0));
+  test_rec_metadata.AddMetaDatum(snde.metadatum_dbl("ande_array-axis0_offset",0.0));
   
   test_ref.rec.metadata = test_rec_metadata;
   test_ref.rec.mark_metadata_done()
