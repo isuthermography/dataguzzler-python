@@ -132,6 +132,6 @@ setup(name="dataguzzler_python",
           "install": InstallCommand,
           "build": BuildCommand
       },
-      packages=["dataguzzler_python","dataguzzler_python.bin"],
+      packages=["dataguzzler_python","dataguzzler_python.bin","dataguzzler_python.modules"],
       package_data=package_data,
       entry_points={"console_scripts": console_scripts_entrypoints })
