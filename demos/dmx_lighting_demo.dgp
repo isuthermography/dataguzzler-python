@@ -7,6 +7,7 @@ include(dgpy,"dgpy_startup.dpi") # If you get a NameError here, be sure you are 
 include(dgpy,"Qt.dpi")
 include(dgpy,"serial.dpi")
 include(dgpy,"pint.dpi")
+include(snde,"recdb_gui.dpi")
 
 from dataguzzler_python.modules.dmx_usb_pro import dmx_usb_pro
 
@@ -18,6 +19,35 @@ dgpython_release_main_thread() # From here on, the .dgp executes in a sub thread
 # then read out the serial number via serial_ports[index].serial_number
 port = find_serial_port("ENRXO47A")
 
-#port = "loop://"
-dmx = dmx_usb_pro("dmx",port,4,debug=False)
+# port = "loop://" 
+dmx = dmx_usb_pro("dmx",port,4,recdb = recdb,dmxchan = "/DMX",debug=False)
 
+transact = recdb.start_transaction();
+dmxchan = recdb.define_channel("/DMX", "main", recdb.raw());
+dmx_ref = snde.create_ndarray_ref(recdb,dmxchan,recdb.raw(),snde.SNDE_RTN_FLOAT32)
+globalrev = transact.end_transaction()
+
+t0 = 0.0
+dt = 0.1
+nt = 100
+
+t = np.arange(nt,dtype="d")*dt + t0
+
+dmx_rec_metadata = snde.constructible_metadata()
+dmx_rec_metadata.AddMetaDatum(snde.metadatum_str("ande_array-axis0_coord","Time"));
+dmx_rec_metadata.AddMetaDatum(snde.metadatum_dbl("ande_array-axis0_offset",0.0));
+dmx_rec_metadata.AddMetaDatum(snde.metadatum_str("ande_array-axis0_offset-units","seconds"));
+dmx_rec_metadata.AddMetaDatum(snde.metadatum_dbl("ande_array-axis0_scale",0.1));
+dmx_rec_metadata.AddMetaDatum(snde.metadatum_str("ande_array-axis0_scale-units","seconds"));
+
+dmx_ref.rec.metadata = dmx_rec_metadata;
+dmx_ref.rec.mark_metadata_done()
+
+dmx_ref.allocate_storage([ nt ],False)
+dmx_ref.data()[:] = np.zeros(nt,dtype = "d")
+dmx_ref.data()[(t >= 2) & (t < 4)] = 1.0
+dmx_ref.rec.mark_data_ready()
+
+# To try it:
+# dmx.enabled[0] = True
+# dmx.trigger()
