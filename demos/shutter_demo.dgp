@@ -11,6 +11,9 @@ from servoshutter import servoshutter
 
 dgpython_release_main_thread() # From here on, the .dgp executes in a sub thread
 
+# identify the serial port serial number by listing out the ports with:
+#   [ str(serial_port) for serial_port in serial_ports ]
+# then read out the serial number via serial_ports[index].serial_number
 #port = find_serial_port("A700eEMQ")
 port = "loop://"
 servocont = pololu_rs232servocontroller("servocont",port)

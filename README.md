@@ -1,3 +1,6 @@
+Dataguzzler-Python
+==================
+
 Dataguzzler-Python is a tool to facilitate data acquisition,
 leveraging Python for scripting and interaction.
 A Dataguzzler-Python data acquisition system consists of *modules* that
