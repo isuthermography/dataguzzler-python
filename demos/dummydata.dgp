@@ -10,4 +10,12 @@ include(snde,"recdb_gui.dpi")
 
 from dummydata import DummyData
 
-DD=DummyData("DD", recdb, 1000)
+wfm=DummyData("wfm", recdb, 1000)
+
+img=DummyData("img", recdb, shape=(20,20))
+
+
+def Test():
+    import time
+    time.sleep(10)
+    print('Test')
