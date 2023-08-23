@@ -15,10 +15,28 @@ class DummyData(object, metaclass=dgpy_Module):
     thread = None
     _quit = False
 
-    def __init__(self, module_name, recdb, len=1000):
+    def __init__(self, module_name, recdb, len=None, shape=None):
         self.module_name = module_name
         self.recdb = recdb
-        self.len = len
+
+        assert(shape is not None or len is not None)
+
+        if (shape is not None and len is not None):
+            assert(np.prod(shape) == len)
+            self.len = len
+            self.shape = shape
+        elif shape is not None:
+            if isinstance(shape, int):
+                shape = (shape,)
+            elif not hasattr(shape, '__iter__'):
+                raise Exception("Shape must be integer or iterable")
+            self.len = np.prod(shape)
+            self.shape = shape
+        elif len is not None:
+            self.len = len
+            self.shape = (len,)
+        else:
+            assert(False)
 
         transact = recdb.start_transaction()
         self.chanptr = recdb.define_channel("/%s" % (self.module_name), "main", self.recdb.raw())
@@ -35,8 +53,8 @@ class DummyData(object, metaclass=dgpy_Module):
             globalrev = self.recdb.end_transaction(transact)
             rec.rec.metadata = snde.immutable_metadata()
             rec.rec.mark_metadata_done()
-            rec.allocate_storage([self.len], False)
-            rec.data()[:] = np.sin(np.linspace(0, 10*np.pi, self.len)) + np.random.normal(0,0.01,self.len)
+            rec.allocate_storage(self.shape, False)
+            rec.data()[:] = np.sin(np.linspace(0, 10*np.pi, self.len)).reshape(self.shape) + np.random.normal(0,0.01,self.len).reshape(self.shape)
             rec.rec.mark_data_ready()
             pass
 
