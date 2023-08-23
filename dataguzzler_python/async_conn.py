@@ -12,7 +12,6 @@ import threading
 from threading import Thread,Lock,local,current_thread
 import asyncio
 from asyncio import StreamReader,StreamReaderProtocol
-from asyncio.coroutines import coroutine
 from asyncio import IncompleteReadError
 import copy
 import struct

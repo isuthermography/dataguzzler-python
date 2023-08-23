@@ -10,7 +10,6 @@ import importlib
 from threading import Thread,Lock
 import asyncio
 from asyncio import StreamReader,StreamReaderProtocol
-from asyncio.coroutines import coroutine
 import copy
 import ctypes
 import numbers
