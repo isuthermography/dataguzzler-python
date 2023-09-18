@@ -13,7 +13,9 @@ from .dgpy import get_pint_util_SharedRegistryObject
 
 from .dgpy import Module
 from .dgpy import threadsafe
+from .dgpy import wrapdescriptor
 from .context import CurContext,RunInContext
+from .context import PushThreadContext, PopThreadContext
 from .remoteproxy import remoteproxy
 from .OpaqueWrapper import OpaqueWrapper,attemptunwrap
 
@@ -24,7 +26,7 @@ method_wrapper_type=junk.__str__.__class__
 builtin_function_or_method_type = os.system.__class__ # os.system should consistently be a builtin
 
 
-method_attr_types=[ types.MethodType, method_wrapper_type, builtin_function_or_method_type ]
+method_attr_types=[ types.MethodType, types.FunctionType, method_wrapper_type, builtin_function_or_method_type ]
 
 def censorobj(sourcecontext,destcontext,attrname,obj):
     # Make sure obj is a base class type
@@ -148,9 +150,23 @@ def censorobj(sourcecontext,destcontext,attrname,obj):
         
         return wrapper
 
-    # If a non-method data descriptor:
+    # If a non-method data descriptor (instance descriptors only -- class descriptors are handled elsewhere):
     if hasattr(obj,"__get__") and hasattr(obj,"__set__") and not hasattr(obj,"__call__"):
         # return wrapped copy
+        ## If you're here looking at this code because a "descriptor_wrapper" object is being
+        ## returned by your attempt to access a dynamic instance descriptor, this isn't
+        ## actually supported by Python by default.  You will need to do one of two things:
+        ## 1) Override the default behavior of __getattribute__  
+        ##    See https://stackoverflow.com/questions/10232174/can-a-python-descriptor-be-used-to-instantiate-an-attribute-in-the-init-of-a
+        ## 2) Set the __perinstance flag on the class 
+        ##    See https://stackoverflow.com/questions/2954331/dynamically-adding-property-in-python
+        ## See https://stackoverflow.com/questions/12599972/descriptors-as-instance-attributes-in-python for general info
+        ## Here's some code that is known to work.  Add it to your class:
+        ##     def __getattribute__(self, name):
+        ##         attr = super(YourClassNameHere, self).__getattribute__(name)
+        ##         if hasattr(attr, "__get__"):
+        ##             return attr.__get__(self, YourClassNameHere)
+        ##         return attr
         return wrapdescriptor(obj)
     
     # for a tuple, return a new tuple with the elements censored

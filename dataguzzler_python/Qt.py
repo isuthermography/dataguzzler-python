@@ -76,6 +76,7 @@ except ImportError as origexcept:
 
 Import_SubModule("QtCore")
 Import_SubModule("QtWidgets")
+Import_SubModule("QtGui")
 
 if selected_bindings=="PyQt5":
     QtSlot = QtCore.pyqtSlot
