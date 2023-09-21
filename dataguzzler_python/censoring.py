@@ -18,6 +18,7 @@ from .context import CurContext,RunInContext
 from .context import PushThreadContext, PopThreadContext
 from .remoteproxy import remoteproxy
 from .OpaqueWrapper import OpaqueWrapper,attemptunwrap
+from .main_thread import main_thread_context
 
 junk=5
 method_wrapper_type=junk.__str__.__class__
@@ -53,6 +54,16 @@ def censorobj(sourcecontext,destcontext,attrname,obj):
     if objclass is OpaqueWrapper:
         # pre-wrapped object
         return attemptunwrap(obj,destcontext)
+    
+    if objclass.__name__ is "QtWrapper":
+        from .QtWrapper import QtWrapper, qt5unwrap
+        # pre-wrapped qt5 object
+        if destcontext is main_thread_context:
+            return qt5unwrap(obj)
+        else:
+            # already wrapped
+            return obj
+        pass
 
     if isinstance(obj,type):
         # class objects can be passed around freely

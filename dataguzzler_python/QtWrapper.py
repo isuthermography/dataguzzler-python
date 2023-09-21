@@ -420,7 +420,7 @@ def DispatchToQtMainThreadLoop(fromcontext, routine, routinename, args, kwargs):
 
     # All arguments and return values are passed through the QtCensorObj
     # function above.
-    if threading.current_thread() is threading.main_thread or hasattr(routine,"_dgpy_nowrapping"):
+    if threading.current_thread() is threading.main_thread() or hasattr(routine,"_dgpy_nowrapping"):
         # No context switch necessary
         # This would mean the context is the main loop context, which is the same context the QT Event loop runs in
         return routine(*args,**kwargs)
