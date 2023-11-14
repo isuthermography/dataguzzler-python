@@ -1,0 +1,68 @@
+from dataguzzler_python import dgpy
+
+import spatialnde2 as snde 
+
+# Includes are like python imports but can pull in more
+# than one variable and can also be repeated multiple times. 
+include(dgpy,"dgpy_startup.dpi") # If you get a NameError here, be sure you are executing this file with dataguzzler-python
+
+include(dgpy,"Qt.dpi")
+include(dgpy,"serial.dpi") # For communicating with the USB DMX interface. 
+include(dgpy,"pint.dpi") # Units library 
+include(snde,"recdb_gui.dpi") # This initializes spatialnde2 and brings up
+			      # the interactive interface to see waveforms
+			      # and images. 
+
+# Bring in the DMX interface module 
+from dataguzzler_python.modules.dmx_usb_pro import dmx_usb_pro
+
+
+dgpython_release_main_thread() # From here on, the .dgp executes in a sub thread
+
+# identify the serial port serial number by listing out the ports with:
+#   [ str(serial_port) for serial_port in serial_ports ]
+# then read out the serial number via serial_ports[index].serial_number
+port = find_serial_port("ENRXO47A")
+
+# port = "loop://"
+# Create an object representing the DMX controller. 
+dmx = dmx_usb_pro("dmx",port,4,recdb = recdb,dmxchan = "/DMX",debug=False)
+
+# Start a transaction that we will use to provide a pulse pattern
+# to transmit on the DMX interface (a single two second pulse after
+# two seconds).
+transact = recdb.start_transaction() 
+dmxchan = recdb.define_channel("/DMX", "main", recdb.raw())
+
+# Define the recording for storing the pulse pattern.
+dmx_ref = snde.create_ndarray_ref(recdb,dmxchan,recdb.raw(),snde.SNDE_RTN_FLOAT32)
+globalrev = transact.end_transaction()
+
+# Define a time range 
+t0 = 0.0
+dt = 0.1
+nt = 100
+t = np.arange(nt,dtype="d")*dt + t0
+
+# Define scale and offset metadata for the pulse pattern recording. 
+dmx_rec_metadata = snde.constructible_metadata()
+dmx_rec_metadata.AddMetaDatum(snde.metadatum_str("ande_array-axis0_coord","Time"));
+dmx_rec_metadata.AddMetaDatum(snde.metadatum_dbl("ande_array-axis0_offset",0.0));
+dmx_rec_metadata.AddMetaDatum(snde.metadatum_str("ande_array-axis0_offset-units","seconds"));
+dmx_rec_metadata.AddMetaDatum(snde.metadatum_dbl("ande_array-axis0_scale",0.1));
+dmx_rec_metadata.AddMetaDatum(snde.metadatum_str("ande_array-axis0_scale-units","seconds"));
+
+dmx_ref.rec.metadata = dmx_rec_metadata;
+dmx_ref.rec.mark_metadata_done()
+
+# Generate and fill the array for the pulse pattern. 
+dmx_ref.allocate_storage([ nt ],False)
+dmx_ref.data()[:] = np.zeros(nt,dtype = "d")
+dmx_ref.data()[(t >= 2) & (t < 4)] = 1.0
+
+# Indicate that we have finished providing data for this recording. 
+dmx_ref.rec.mark_data_ready()
+
+# To try it:
+# dmx.enabled[0] = True
+# dmx.trigger()

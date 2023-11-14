@@ -7,6 +7,7 @@ consider the ``shutter_demo.dgp`` used above in the quickstart
 section. ::
 
    from dataguzzler_python import dgpy
+   from dataguzzler_python import password_auth,password_acct
 
    include(dgpy,"dgpy_startup.dpi") # If you get a NameError here, be sure you are executing this file with dataguzzler-python
 
@@ -16,13 +17,14 @@ section. ::
    from pololu_rs232servocontroller import pololu_rs232servocontroller
    from servoshutter import servoshutter
 
+   dgpython_release_main_thread() # From here on, the .dgp executes in a sub thread 
+   
    #port = find_serial_port("A700eEMQ")
    port = "loop://"
    servocont = pololu_rs232servocontroller("servocont",port)
 
    shutter = servoshutter("shutter",servocont.servos[0],servocont.servos[1])
 
-   from dataguzzler_python import password_auth,password_acct
 
    include(dgpy,"network_access.dpi",
            auth=password_auth(password_acct("dgp","xyzzy")))
@@ -35,10 +37,11 @@ section. ::
 Let us examine the configuration file line-by-line::
 
    from dataguzzler_python import dgpy
+   from dataguzzler_python import password_auth,password_acct
 
    include(dgpy,"dgpy_startup.dpi") # If you get a NameError here, be sure you are executing this file with dataguzzler-python
 
-These first lines are the initialization boilerplate. The ``.dgp`` file is executed by the ``dataguzzler-python`` command as Python code. The first line imports the ``dataguzzler_python.dgpy`` module. The second (include) line has two functions:
+These first lines are the initialization boilerplate. The ``.dgp`` file is executed by the ``dataguzzler-python`` command as Python code. The first line imports the ``dataguzzler_python.dgpy`` module. The second line pulls in authenticationclasses that are used below. The third (include) line has two functions:
   * To induce an immediate error if you accidentally run the ``.dgp`` file like a regular Python script. The symbol ``include`` will not be defined so you will get an immediate ``NameError``.
   * To load some very common libraries. Specifically it imports the ``sys`` and ``os`` Python standard libraries, as well as importing the ``numpy`` library under the name ``np``.
 
@@ -58,6 +61,10 @@ These two lines import Dataguzzler-Python module classes from files
 located in the same directory as ``shutter_demo.dgp``. The location
 of the current ``.dgp`` or ``.dgi`` file is always at the head of
 ``sys.path`` while it is being processed.::
+
+  dgpython_release_main_thread() # From here on, the .dgp executes in a sub thread 
+
+The dgp file normally executes in the context of the main (primary) thread of the dataguzzler-python process. Certain functions, such as many GUI functions and the GUI event loop, need to run in that main thread. Any graphical elements will appear unresponsive until the GUI event loop starts executing. This pseudo-function ``dgpython_release_main_thread()`` transitions execution of the .dgp file from the main thread context into a sub thread context where the GUI event loop can execute in parallel. In this example, it is included for illustrative purposes, as there is no GUI present. In general, place the call to ``dgpython_release_main_thread()`` after Python imports, after import-like ``include()`` calls, and after the import of ``recdb_gui.dpi``. This way thread-unsafe import operations will happen in sequence, but the GUI will be immediately responsive.::
   
    #port = find_serial_port("A700eEMQ")
    port = "loop://"

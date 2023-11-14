@@ -1,4 +1,5 @@
 from dataguzzler_python import dgpy
+from dataguzzler_python import password_auth,password_acct
 
 include(dgpy,"dgpy_startup.dpi") # If you get a NameError here, be sure you are executing this file with dataguzzler-python
 
@@ -8,6 +9,11 @@ include(dgpy,"pint.dpi")
 from pololu_rs232servocontroller import pololu_rs232servocontroller
 from servoshutter import servoshutter
 
+dgpython_release_main_thread() # From here on, the .dgp executes in a sub thread
+
+# identify the serial port serial number by listing out the ports with:
+#   [ str(serial_port) for serial_port in serial_ports ]
+# then read out the serial number via serial_ports[index].serial_number
 #port = find_serial_port("A700eEMQ")
 port = "loop://"
 servocont = pololu_rs232servocontroller("servocont",port)
@@ -16,7 +22,7 @@ shutter = servoshutter("shutter",servocont.servos[0],servocont.servos[1])
 
 
 
-from dataguzzler_python import password_auth,password_acct
+
 
 include(dgpy,"network_access.dpi",
         auth=password_auth(password_acct("dgp","xyzzy")))

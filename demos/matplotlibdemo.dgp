@@ -6,6 +6,8 @@ include(dgpy,"dgpy_startup.dpi") # If you get a NameError here, be sure you are 
 
 include(dgpy,"matplotlib.dpi")
 
+dgpython_release_main_thread()
+
 from matplotlib import pyplot as plt
 import numpy as np
 

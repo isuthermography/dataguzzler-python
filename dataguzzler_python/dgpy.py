@@ -67,7 +67,20 @@ class ModuleException(Exception):
 
 
 
-
+## If you're here looking at this code because a "descriptor_wrapper" object is being
+## returned by your attempt to access a dynamic instance descriptor, this isn't
+## actually supported by Python by default.  You will need to do one of two things:
+## 1) Override the default behavior of __getattribute__  
+##    See https://stackoverflow.com/questions/10232174/can-a-python-descriptor-be-used-to-instantiate-an-attribute-in-the-init-of-a
+## 2) Set the __perinstance flag on the class 
+##    See https://stackoverflow.com/questions/2954331/dynamically-adding-property-in-python
+## See https://stackoverflow.com/questions/12599972/descriptors-as-instance-attributes-in-python for general info
+## Here's some code that is known to work.  Add it to your class:
+##     def __getattribute__(self, name):
+##         attr = super(YourClassNameHere, self).__getattribute__(name)
+##         if hasattr(attr, "__get__"):
+##             return attr.__get__(self, YourClassNameHere)
+##         return attr
 def wrapdescriptor(towrap):
     oldget = towrap.__get__
     oldset = towrap.__set__

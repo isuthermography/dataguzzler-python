@@ -26,7 +26,7 @@ from ..context import SimpleContext,InitContext
 from ..context import InitThread,InitThreadContext
 from ..context import PushThreadContext,PopThreadContext
 from ..configfile import DGPyConfigFileLoader
-from ..main_thread import main_thread_run,initialization_context
+from ..main_thread import main_thread_run,initialization_main_thread_context, initialization_sub_thread_context
 from ..help import monkeypatch_visiblename
 
 import dataguzzler_python.dgpy as dgpy
@@ -105,7 +105,7 @@ def main(args=None):
     #InitThreadContext(ConfigContext,"dgpy_config") # Allow to run stuff from main thread
     #PushThreadContext(ConfigContext)
     InitThread() # Allow stuff to run from main thread
-    PushThreadContext(initialization_context)
+    PushThreadContext(initialization_main_thread_context)
     
     argc=1
     if args[argc]=="--profile":
@@ -113,7 +113,8 @@ def main(args=None):
         argc += 1
         pass
 
-    
+    spec_loader = None
+    got_exception = False
     try: 
         configfile=args[argc]
         argc += 1
@@ -218,14 +219,17 @@ def main(args=None):
         
         # load config file
         dgpy_config = importlib.util.module_from_spec(spec)
+        spec_loader = spec.loader
         sys.modules["dgpy_config"]=dgpy_config
         
-        # run config file 
-        spec.loader.exec_module(dgpy_config)
+        # run config file up until any dgpython_release_main_thread() call
+        spec.loader.exec_module(dgpy_config,mode="main_thread")
         pass
     except:
         sys.stderr.write("Exception running config file...\n")
 
+        got_exception = True
+        
         localvars["__dgpy_last_exc_info"]=sys.exc_info()
 
         traceback.print_exc()
@@ -249,10 +253,41 @@ def main(args=None):
     #MainContext=SimpleContext()
     #InitThreadContext(MainContext,"__main__") # Allow to run stuff from main thread
     #PushThreadContext(MainContext)
-    console_input_thread=Thread(target=console_input_processor,args=(dgpy_config,"console_input",localvars,rlcompleter),daemon=False)
+    console_input_thread=Thread(target=dgp_completer_and_console_input_processor,args=(dgpy_config,"console_input",localvars,rlcompleter,spec_loader,got_exception),daemon=False)
     console_input_thread.start()
 
     main_thread_run() # Let main_thread module take over the main thread
     
     pass
 
+def dgp_completer_and_console_input_processor(dgpy_config,console_contextname,localvars,rlcompleter,spec_loader,got_exception):
+    # run the spec_loader in sub_thread mode unless we got an exception above
+    InitThread() # Allow stuff to run from this thread
+    PushThreadContext(initialization_sub_thread_context)
+    
+    if not got_exception:
+        try:
+            # run config file after any dgpython_release_main_thread() call
+            spec_loader.exec_module(dgpy_config,mode="sub_thread")
+            pass
+        except:
+            sys.stderr.write("Exception running config file (after dgypthon_release_main_thread())...\n")
+
+            got_exception = True
+        
+            localvars["__dgpy_last_exc_info"]=sys.exc_info()
+
+            traceback.print_exc()
+
+            sys.stderr.write("\nRun dgpy.pm() to debug\n")
+
+            #import pdb
+            #pdb.post_mortem()
+
+            pass
+        finally:
+            PopThreadContext()
+            pass
+        pass
+    console_input_processor(dgpy_config,console_contextname,localvars,rlcompleter)
+    pass

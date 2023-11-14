@@ -1,0 +1,33 @@
+name: Push To Public
+on:
+  pull_request:
+    types: ['closed']
+    branches: ['cleared']
+  workflow_dispatch:
+jobs:
+  Push-To-Public:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          ref: 'cleared'
+      - name: Push to public repo
+        env:
+          SSH_DEPLOY_KEY: ${{ secrets.SSH_DEPLOY_KEY }}
+        run: |
+          mkdir --parents "$HOME/.ssh"
+          echo "$SSH_DEPLOY_KEY" > $HOME/.ssh/id_ed25519
+          chmod 600 $HOME/.ssh/id_ed25519
+          ssh-keyscan -H github.com > $HOME/.ssh/known_hosts
+          export GIT_SSH_COMMAND="ssh -i $HOME/.ssh/id_ed25519 -o UserKnownHostsFile=$HOME/.ssh/known_hosts"
+          git config --global user.email "noreply@noreply"
+          git config --global user.name "AutoPush"
+          git remote add public git@github.com:isuthermography/dataguzzler-python.git
+          git fetch --unshallow origin
+          git push public cleared:master
+          git push public --tags

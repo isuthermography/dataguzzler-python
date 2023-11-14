@@ -1,4 +1,5 @@
 from dataguzzler_python import dgpy
+import threading
 
 include(dgpy,"dgpy_startup.dpi") # If you get a NameError here, be sure you are executing this file with dataguzzler-python
 
@@ -11,9 +12,12 @@ include(dgpy,"dgpy_startup.dpi") # If you get a NameError here, be sure you are 
 include(dgpy,"Qt.dpi",prefer_pyqt=False) 
 
 
+
 # Can use Qt.Import_SubModule("QtGui"), etc. to get more Qt modules, independent of which bindings you are using
 
 Qt.Import_SubModule("QtGui")
+
+dgpython_release_main_thread() # allow qt main loop to take over the main thread and run in parallel with our code below
 
 # Define the class. Be warned it is NOT currently
 # safe to call any dataguzzler-python modules from
@@ -27,6 +31,9 @@ class TestWindow(Qt.QtWidgets.QMainWindow):
     label = None
     
     def __init__(self):
+        if threading.current_thread() is not  threading.main_thread():
+            raise ValueError()
+        
         super().__init__()
         self.label = Qt.QtWidgets.QLabel("Hello, World",self)
         self.show()

@@ -1,5 +1,5 @@
 # This is a simple example of using dataguzzler-python
-# with the spatialnde2 recording database as an .nde file
+# with the spatialnde2 recording database as an .ande file
 # viewer
 
 from dataguzzler_python import dgpy
@@ -12,14 +12,15 @@ include(dgpy,"Qt.dpi",prefer_pyqt=False)
 include(snde,"recdb_gui.dpi")
 include(dgpy,"matplotlib.dpi")
 
+#dgpython_release_main_thread()
 
 if len(args) < 2:
-    print("Usage: dataguzzler-python nde_viewer.dgp <filename.nde>")
+    print("Usage: dataguzzler-python ande_viewer.dgp <filename.ande>")
     print(" ")
     print("Or manually load a file in a transaction:")
     print(" ")
     print("transact = recdb.start_transaction()")
-    print("snde.ndefile_loadfile(recdb,\"main\",main.raw(),\"filename.nde\",\"/\")")
+    print("snde.andefile_loadfile(recdb,\"main\",main.raw(),\"filename.ande\",\"/\")")
     print("g=transact.end_transaction()")
     print(" ")
     print("Once loaded,")
@@ -27,7 +28,7 @@ if len(args) < 2:
     pass
 else:
     transact = recdb.start_transaction()
-    recmap = snde.ndefile_loadfile(recdb,"main",recdb.raw(),args[1],"/") 
+    recmap = snde.andefile_loadfile(recdb,"main",recdb.raw(),args[1],"/") 
     g = transact.end_transaction() # returns globalrev    
     pass
           

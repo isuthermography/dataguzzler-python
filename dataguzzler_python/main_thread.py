@@ -12,9 +12,12 @@ from .dgpy import SimpleContext,InitContext,PushThreadContext,PopThreadContext
 
 # Initialization runs in the initialization context
 
-initialization_context = SimpleContext()
-InitContext(initialization_context,"dgpy_initialization")
+initialization_main_thread_context = SimpleContext()
+InitContext(initialization_main_thread_context,"dgpy_initialization")
 
+
+initialization_sub_thread_context = SimpleContext()
+InitContext(initialization_sub_thread_context,"dgpy_initialization")
 
 # Then we spin off the main thread in the main_thread_context
 # running whatever is sent to us in the main_thread_queue

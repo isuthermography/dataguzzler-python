@@ -10,6 +10,7 @@ from urllib.parse import quote
 import atexit
 import ast
 import inspect
+import copy
 
 
 #def whofunc(globalkeys,localkeys):
@@ -117,15 +118,53 @@ def scan_source(sourcepath,sourcetext):
     return (sourceast,globalparams,assignable_param_types)
     
 
-def modify_source_overriding_parameters(sourcepath,sourceast,paramdict_keys):
+def modify_source_overriding_parameters(sourcepath,sourceast,paramdict_keys,mode):
     """Reads in the given syntax tree. Removes assignments of given
     keys. Returns byte-compiled code ready-to-execute (paramdict
-    values must be independently provided). """
+    values must be independently provided). 
+
+    Mode can be 'all' to indicate keeping the entire module, 'main_thread'
+        to indicate keeping the initial portion prior to dgpython_release_main_thread(), 'sub_thread' to indicate keeping the final portion after dgpython_release_main_thread()"""
+
+    
     #sourcefile=open(sourcepath,"r")
     #sourceast=ast.parse(sourcefile.read(),filename=sourcepath)
     #sourcefile.close()
     if sourcepath is None:
         sourcepath="<unknown>"
+        pass
+    if mode == "main_thread":
+        # Want to keep all code up until dgpython_release_main_thread()
+        for cnt in range(len(sourceast.body)):
+            if (sourceast.body[cnt].__class__.__name__ == "Expr" and
+                sourceast.body[cnt].value.__class__.__name__ == "Call" and
+                sourceast.body[cnt].value.func.__class__.__name__ == "Name" and
+                sourceast.body[cnt].value.func.id == "dgpython_release_main_thread"):
+                # Remove all code from here on.
+                while len(sourceast.body) > cnt:
+                    del sourceast.body[-1]
+                    pass
+                break
+            pass
+        pass
+    elif mode == "sub_thread":
+        # Want to keep only code after dgpython_release_main_thread()
+        origbody = sourceast.body
+        sourceast.body = []
+        for cnt in range(len(origbody)):
+            if (origbody[cnt].__class__.__name__ == "Expr" and
+                origbody[cnt].value.__class__.__name__ == "Call" and
+                origbody[cnt].value.func.__class__.__name__ == "Name" and
+                origbody[cnt].value.func.id == "dgpython_release_main_thread"):
+                # Keep all code from here on.
+                for cnt2 in range(cnt+1,len(origbody)):
+                    sourceast.body.append(origbody[cnt2])
+                    pass
+                break
+            pass
+        pass
+    else:
+        assert(mode=="all")
         pass
     
     for paramkey in paramdict_keys:
@@ -147,8 +186,51 @@ def modify_source_overriding_parameters(sourcepath,sourceast,paramdict_keys):
         if gotassigns != 1:
             raise ValueError("Overridden parameter %s in %s is not simply assigned exactly once at top level" % (paramkey,sourcepath))
         pass
-    return compile(sourceast,sourcepath,'exec')
+    return sourceast # compile(sourceast,sourcepath,'exec')
 
+def modify_source_into_function_call(sourceast,localkwargs):
+    """Take sourceast, and stuff it into the body of a function call
+which takes the named arguments given in the keys of localkwargs. Then
+generate a call to the function that stores the return in the
+local variable __dgpy_config_ret. Then return an abstract syntax
+tree representing this process. 
+
+The name of the defined function is __dgpy_config_function.
+    """
+    
+    curbody = sourceast.body
+    
+    funcarglist = [ ast.arg(arg=kwarg,annotation=None,type_comment=None) for kwarg in localkwargs ]
+    
+
+    funcargs = ast.arguments(posonlyargs=[],
+                             args=funcarglist,
+                             vararg=None,
+                             kwonlyargs=[],
+                             kw_defaults=[],
+                             kwarg=None,
+                             defaults=[])
+    
+    funcdef = ast.FunctionDef(name="__dgpy_config_function",
+                              args=funcargs,
+                              body=curbody,
+                              decorator_list=[],
+                              returns = None,
+                              type_comment = None)
+
+    funccallkeywords = [ ast.keyword(arg=kwarg,value=ast.Name(id=kwarg,ctx=ast.Load())) for kwarg in localkwargs ] 
+    
+    funcretassign = ast.Assign(targets=[ast.Name(id="__dgpy_config_ret",ctx=ast.Store())],
+                               value=ast.Call(func=ast.Name(id="__dgpy_config_function",ctx=ast.Load()),
+                                              args=[],
+                                              keywords=funccallkeywords),
+                               type_comment = None)
+    
+    moddef = ast.Module([funcdef,funcretassign],type_ignores=[])
+
+    ast.fix_missing_locations(moddef)
+    
+    return moddef
 
 class DGPyConfigFileLoader(importlib.machinery.SourceFileLoader):
     """Loader for .dgp config files with include() 
@@ -248,11 +330,15 @@ class DGPyConfigFileLoader(importlib.machinery.SourceFileLoader):
             #code = compile(includestr,includepath,'exec')
 
             (includeast,globalparams,assignable_param_types) = scan_source(includepath,includetext)
-            code = modify_source_overriding_parameters(includepath,includeast,kwargs)
+            code = modify_source_overriding_parameters(includepath,includeast,kwargs,mode="all")
 
             localkwargs = { varname: kwargs[varname] for varname in kwargs if varname not in globalparams }
             globalkwargs = { varname: kwargs[varname] for varname in kwargs if varname in globalparams }
 
+            function_code = modify_source_into_function_call(code,localkwargs)
+
+
+            exec_code = compile(function_code,includepath,'exec')
             # run
             #exec(code,module.__dict__,module.__dict__)
             localvars={}  # NOTE Must declare variables as global in the .dpi for them to be accessible
@@ -264,13 +350,14 @@ class DGPyConfigFileLoader(importlib.machinery.SourceFileLoader):
             module.__dict__.update(globalkwargs)
 
             # Run the include file code
-            exec(code,module.__dict__,localvars)
+            exec(exec_code,module.__dict__,localvars)
             
             # pop from context stack
             # First remove current context from start of module search path
             sys.path.remove(module.__dict__["_contextstack"][-1]) 
-            module.__dict__["_contextstack"].pop()        
-            pass
+            module.__dict__["_contextstack"].pop()
+
+            return localvars["__dgpy_config_ret"]
         
 
         
@@ -281,9 +368,12 @@ class DGPyConfigFileLoader(importlib.machinery.SourceFileLoader):
         module.__doc__=None
         return module
 
-    def exec_module(self,module):
+    def exec_module(self,module,mode="all"):
         """Overridden exec_module() that presets variables according
-        to given kwarg dict, erasing their simply assigned values if present."""
+        to given kwarg dict, erasing their simply assigned values if present.
+        
+        Mode can be 'all' to indicate executing the entire module, 'main_thread'
+        to indicate executing the initial portion prior to dgpython_release_main_thread(), 'sub_thread' to indicate executing the final portion after dgpython_release_main_thread()"""
 
         # Insert explicitly passed parameters into dict
         module.__dict__["args"]=self.args  # add "args" variable with positional parameters
@@ -294,10 +384,16 @@ class DGPyConfigFileLoader(importlib.machinery.SourceFileLoader):
             module.__dict__["parent"]=self.parentmodule
             pass
 
-        code = modify_source_overriding_parameters(self.path,self.sourceast,self.paramdict.keys())
+        code = modify_source_overriding_parameters(self.path,copy.deepcopy(self.sourceast),self.paramdict.keys(),mode)
         # We don't care about global declarations here because in the main config file everything is global by default
+
+        # Likewise modify_source_into_function_call() is unnecessary
+        
         # self.globalparams
-        exec(code,module.__dict__,module.__dict__)
+        exec_code = compile(code,self.path,'exec')
+
+        
+        exec(exec_code,module.__dict__,module.__dict__)
         pass
     
         
