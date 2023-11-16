@@ -46,7 +46,7 @@ if distutils.spawn.find_executable("git") is not None and subprocess.call(['git'
     
     gitrev = subprocess.check_output(["git","rev-parse","HEAD"]).decode('utf-8').strip()
 
-    version = "git-%s" % (gitrev)
+    version = "0.0+git-%s" % (gitrev)
 
     # See if we can get a more meaningful description from "git describe"
     try:
@@ -72,7 +72,7 @@ if distutils.spawn.find_executable("git") is not None and subprocess.call(['git'
         pass
     pass
 else:
-    version = "UNKNOWN"
+    version = "0.0+UNKNOWN"
     pass
 
 print("version = %s" % (version))
