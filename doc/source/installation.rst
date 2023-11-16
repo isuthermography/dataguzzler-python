@@ -9,11 +9,29 @@ in ``about.rst``.
 If you are also installing SpatialNDE2 (highly recommended), you
 may want to do that first, as on some platforms (Windows)
 the recommended procedure involves creating a virtual Python
-environment, and you will wanto to install Dataguzzler-Python
+environment, and you will want to install Dataguzzler-Python
 into the same environment. 
 
 
-Installation is accomplished by running
+On Anaconda you will probably want at least the following packages:
+numpy scipy matplotlib cython ipython pip opencv pint lxml setuptools pyreadline pyserial pyside2 pyvisa. If you considering installing SpatialNDE2, you will also want: 
+clhpp pyopencl  hdf5 h5py  netcdf4 cmake openscenegraph pyopengl glfw freeglut glew mesa eigen swig.
+
+To create a new Anaconda environment with all these packages, run, for example:
+
+::
+   
+   conda create -n SNDE -c conda-forge python=3.9 numpy scipy matplotlib cython ipython pip opencv clhpp pyopencl pint hdf5 h5py lxml setuptools netcdf4 cmake openscenegraph pyopengl glfw freeglut glew mesa eigen swig pyreadline pyserial pyside2 hdf5 pyvisa
+
+You can then activate the Anaconda environment with:
+
+::
+   
+   conda activate SNDE
+
+(To select this environment in a new Anaconda prompt, you will have to rerun the "conda activate SNDE") 
+
+Installation of Dataguzzler-Python is accomplished by running
 (possibly as root or Administrator):
 
 ::
