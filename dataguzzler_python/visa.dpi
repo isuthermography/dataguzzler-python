@@ -1,0 +1,17 @@
+#import os
+#from dataguzzler_python.subproc import subproc
+visa_addr = None
+
+
+
+from pyvisa import ResourceManager
+
+rm = ResourceManager()
+if visa_addr is None:
+    print(rm.list_resources())
+    print("visa.dpi: pass visa_addr as a keyword argument to select your device")
+    pass
+
+inst = rm.open_resource(visa_addr)
+
+return inst
