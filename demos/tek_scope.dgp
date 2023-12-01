@@ -1,0 +1,12 @@
+from dataguzzler_python import dgpy
+
+include(dgpy,"dgpy_startup.dpi") # If you get a NameError here, be sure you are executing this file with dataguzzler-python
+
+
+inst=include(dgpy,"visa.dpi",
+             visa_addr='USB0::1689::874::C046216::0::INSTR')
+
+
+print("dataguzzler-python subprocess gpib demo")
+print("------------------------------------------")
+print("You can query the instrument with: inst.query(\"*IDN?\")")
