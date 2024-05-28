@@ -22,11 +22,12 @@ dgpython_release_main_thread() # From here on, the .dgp executes in a sub thread
 # identify the serial port serial number by listing out the ports with:
 #   [ str(serial_port) for serial_port in serial_ports ]
 # then read out the serial number via serial_ports[index].serial_number
-port = find_serial_port("ENRXO47A")
+# port_name = "ENRXO47A"
+port_name = None
 
-# port = "loop://"
+# port_name = "loop://"
 # Create an object representing the DMX controller. 
-dmx = dmx_usb_pro("dmx",port,4,recdb = recdb,dmxchan = "/DMX",debug=False)
+dmx = dmx_usb_pro("dmx",port_name,4,recdb = recdb,dmxchan = "/DMX",debug=False)
 
 # Start a transaction that we will use to provide a pulse pattern
 # to transmit on the DMX interface (a single two second pulse after

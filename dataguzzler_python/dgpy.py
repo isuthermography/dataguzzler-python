@@ -10,7 +10,13 @@ import inspect
 import traceback
 import copy
 import pdb
+import warnings
+import importlib
+import posixpath
+import ast
 
+from urllib.request import url2pathname
+from urllib.parse import quote
 from .remoteproxy import remoteproxy
 from .context import InitThread,InitFreeThread,InitCompatibleThread
 from .context import InitContext,InitThreadContext
@@ -18,6 +24,9 @@ from .context import PushThreadContext,PopThreadContext
 from .context import CurContext,InContext,SimpleContext
 from .context import RunUnprotected,RunInContext
 from .OpaqueWrapper import OpaqueWrapper,forceunwrap
+from dataguzzler_python.configfile_utils import scan_source
+from dataguzzler_python.configfile_utils import modify_source_overriding_parameters
+from dataguzzler_python.configfile_utils import modify_source_into_function_call
 
 #try:
 #    import limatix
@@ -319,3 +328,81 @@ class threadsafe(object,metaclass=abc.ABCMeta):
 # Use dgpy.threadsafe.register(my_class)  to register your new class
 
 #threadsafe.register(limatix.dc_value.value)
+
+# include() function for config files and modules
+
+def include(includepackage,includeurl=None,**kwargs):
+    """Include a sub-config file as if it were 
+        inserted in your main config file. 
+            
+        Provide an imported package (or None) as includepackage, then
+        the relative or absolute path as includeurl, in URL notation 
+        with forward slashes (but not percent-encoding of special 
+        characters).
+        """
+
+    module = sys.modules["dgpy_config"]
+    if includeurl is None:
+        if isinstance(includepackage,str):
+            warnings.warn("include() should now have a package (or None) as its first argument", category=DeprecationWarning)
+            pass
+        includeurl = includepackage
+        includepackage = None
+        pass
+
+    quoted_includeurl=quote(includeurl)
+            
+    if posixpath.isabs(quoted_includeurl):
+        if includepackage is not None:
+            raise ValueError("Set package context to None if using an absolute include URL such as %s" % (includeurl))
+        includepath = url2pathname(quoted_includeurl)
+        pass
+    else:
+        if includepackage is None:
+            includepath = os.path.join(module.__dict__["_contextstack"][-1],url2pathname(quoted_includeurl))
+            pass
+        else:
+            includepath = os.path.join(os.path.dirname(includepackage.__file__),url2pathname(quoted_includeurl))
+            pass
+        pass
+            
+    # Now includepath is the path of my include file
+    # push to context stack
+    module.__dict__["_contextstack"].append(includepath)
+    sys.path.insert(0,module.__dict__["_contextstack"][-1]) # Current context should always be at start of module search path
+            
+    # load
+    includefh=open(includepath,"r")
+    includetext=includefh.read()
+    includefh.close()
+    #code = compile(includestr,includepath,'exec')
+
+    (includeast,globalparams,assignable_param_types) = scan_source(includepath,includetext)
+    code = modify_source_overriding_parameters(includepath,includeast,kwargs,mode="all")
+
+    localkwargs = { varname: kwargs[varname] for varname in kwargs if varname not in globalparams }
+    globalkwargs = { varname: kwargs[varname] for varname in kwargs if varname in globalparams }
+
+    function_code = modify_source_into_function_call(code,localkwargs)
+
+
+    exec_code = compile(function_code,includepath,'exec')
+    # run
+    #exec(code,module.__dict__,module.__dict__)
+    localvars={}  # NOTE Must declare variables as global in the .dpi for them to be accessible
+
+            
+    localvars.update(localkwargs)  # include any explicitly passed local parameters 
+
+    # update global dictionary according to explicitly passed global parameters
+    module.__dict__.update(globalkwargs)
+
+    # Run the include file code
+    exec(exec_code,module.__dict__,localvars)
+            
+    # pop from context stack
+    # First remove current context from start of module search path
+    sys.path.remove(module.__dict__["_contextstack"][-1]) 
+    module.__dict__["_contextstack"].pop()
+
+    return localvars["__dgpy_config_ret"]

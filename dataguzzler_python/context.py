@@ -174,9 +174,32 @@ class SimpleContext(object):
     _dgpy_contextname=None
     _dgpy_compatible=None
     _dgpy_no_thread_will_ever_wait_for_this_thread_while_holding_module_context=None
+
+    def __enter__(self):
+        PushThreadContext(self)
+        pass
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        PopThreadContext()
+        return False
     pass
 
+class UnprotectedContext_Class(object):
+    """ Not a real context. Just here to be used with the "with" statement
 
+    Note that variables do not get censored when you enter the unprotected context
+    """
+
+    def __enter__(self):
+        PushThreadContext(None)
+        pass
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        PopThreadContext()
+        return False
+    pass
+
+UnprotectedContext = UnprotectedContext_Class() # create an instance
 
 def RunUnprotected(routine,*args,**kwargs):
     PushThreadContext(None)

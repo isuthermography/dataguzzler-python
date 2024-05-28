@@ -1,50 +1,14 @@
 #import os
 #from dataguzzler_python.subproc import subproc
-visa_addr = None
-
-
-
+from dataguzzler_python import visa
 from pyvisa import ResourceManager
 
-def user_select_device():
-    res = rm.list_resources()
-    formatted_res=[f"Device #{idx:d}: '{res[idx]:s}'" for idx in range(len(res))]
-    print("\n".join(formatted_res))
-    print("(q to quit)")
-    chosen = input("Select Device --> ")
-    if chosen == 'q' or chosen == 'Q':
-        return None
-    chosen_idx = int(chosen)
-    res_name = res[chosen_idx]
-    inst = rm.open_resource(res_name)
-    return inst
+global visa_rm
+global visa_resources
 
-rm = ResourceManager()
+if not "visa_rm" in globals() or globals()["visa_rm"] is None:
+    visa_rm = ResourceManager()
+    visa_resources = visa_rm.list_resources()
+    pass
 
-if visa_addr is None:
-    # print(rm.list_resources())
-    # print("visa.dpi: pass visa_addr as a keyword argument to select your device")
-    inst = user_select_device()
-    pass
-else:
-    try:
-        inst = rm.open_resource(visa_addr)
-        pass
-    except ValueError as e:
-        if e.args[0] == 'No device found.':
-            print(f"visa.dpi: Error: device '{visa_addr:s}' not found.")
-            print()
-            print("Try another VISA device?")
-            inst = user_select_device()
-            if inst is None:
-                raise
-            pass
-        
-            
-        else:
-            raise
-        pass
-            
-        
-    pass
-return inst
+

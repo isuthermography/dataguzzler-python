@@ -9,6 +9,7 @@ from ..dgpy import Module
 
 from ..dgpy import InitCompatibleThread
 
+from .. import dgpy
 ur = pint.get_application_registry()
 
 class enabled_helper(object):
@@ -78,7 +79,7 @@ class dmx_usb_pro(metaclass=Module):
     INVALID_LABEL = 0xff
 
 
-    def __init__(self,module_name,port,numchannels,recdb=None,dmxchan=None, dmxchan_dmxoffset=0,debug=False):
+    def __init__(self,module_name,port_name,numchannels,recdb=None,dmxchan=None, dmxchan_dmxoffset=0,debug=False):
         """ port is the device name (Linux or MacOS) or COM port 
         (Windows) corresponding to the virtual serial port of the
         DMX USB Pro Device. You usually find this by 
@@ -107,7 +108,7 @@ class dmx_usb_pro(metaclass=Module):
         self.debug = debug
         if not self.debug:
             
-            self.fh = serial.serial_for_url(port,baudrate=19200)
+            self.fh = dgpy.include(dgpy, "serial_device.dpi",port_name=port_name,module_name=module_name,description="DMX USB PRO Device",baudrate=19200)
             pass
         self.outputstatus = np.zeros(numchannels,dtype=np.dtype(np.bool))
         self.CurLevel = np.zeros(numchannels,dtype="d")

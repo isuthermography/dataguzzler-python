@@ -1,0 +1,87 @@
+import serial
+from dataguzzler_python import dgpy
+from dataguzzler_python import serial as dgp_serial
+
+# Parameters that can be supplied as keyword arguments
+# Via the include() function:
+port_name = None # if None, we ask the user interactively to select a device 
+module_name = None # if provided, this module name given with the device selection
+description = None # if provided, this description given with the device selection.
+
+# additional default parameters to serial.Serial()
+baudrate=9600
+bytesize=serial.EIGHTBITS
+parity=serial.PARITY_NONE
+stopbits=serial.STOPBITS_ONE
+timeout=None
+xonxoff=False
+rtscts=False
+write_timeout=None
+dsrdtr=None
+inter_byte_timeout=None
+
+global serial_devices
+
+if not "serial_devices" in globals() or globals()["serial_devices"] is None:
+    include(dgpy, "serial.dpi")
+    pass
+
+if port_name is None:
+    inst = dgp_serial.user_select_device(serial_devices,
+                                         module_name=module_name,
+                                         description=description,
+                                         baudrate=baudrate,
+                                         bytesize=bytesize,
+                                         parity=parity,
+                                         stopbits=stopbits,
+                                         timeout=timeout,
+                                         xonxoff=xonxoff,
+                                         rtscts=rtscts,
+                                         write_timeout=write_timeout,
+                                         dsrdtr=dsrdtr,
+                                         inter_byte_timeout=inter_byte_timeout)
+    pass
+else:
+    try:
+        inst = serial.serial_for_url(port_name,
+                             baudrate=baudrate,
+                             bytesize=bytesize,
+                             parity=parity,
+                             stopbits=stopbits,
+                             timeout=timeout,
+                             xonxoff=xonxoff,
+                             rtscts=rtscts,
+                             write_timeout=write_timeout,
+                             dsrdtr=dsrdtr,
+                             inter_byte_timeout=inter_byte_timeout)
+        pass
+    except serial.serialutil.SerialException as e:
+        if e.args[0].startswith("could not open port"):
+            print(f"serial_device.dpi: Error: device '{port_name:s}' not found.")
+            print()
+            print("Try another serial device?")
+            inst = serial.user_select_device(serial_devices,
+                                             module_name=module_name,
+                                             description=description,
+                                             baudrate=baudrate,
+                                             bytesize=bytesize,
+                                             parity=parity,
+                                             stopbits=stopbits,
+                                             timeout=timeout,
+                                             xonxoff=xonxoff,
+                                             rtscts=rtscts,
+                                             write_timeout=write_timeout,
+                                             dsrdtr=dsrdtr,
+                                             inter_byte_timeout=inter_byte_timeout)
+            if inst is None:
+                raise
+            pass
+
+        else:
+            raise
+        pass
+
+    pass
+return inst
+
+    

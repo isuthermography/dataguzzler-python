@@ -9,6 +9,7 @@ ur = pint.get_application_registry()
 # equally well inside or outside of dataguzzler_python
 if "dataguzzler_python" in sys.modules:
     from dataguzzler_python.dgpy import Module as dgpy_Module
+    from dataguzzler_python import dgpy
     from dataguzzler_python.context import AssertContext
     pass
 else:
@@ -156,7 +157,12 @@ class pololu_rs232servocontroller(object,metaclass=dgpy_Module):
         # field to find_serial_port()
         
         #self.pol=serial.Serial(port,baudrate=9600)
-        self.pol=serial.serial_for_url(port,baudrate=9600)
+        if "dataguzzler_python" in sys.modules:
+            self.pol=dgpy.include(dgpy, "serial_device.dpi", port_name=port,module_name=module_name,description="Pololu Servo Controller", baudrate=9600)
+            pass
+        else:
+            self.pol=serial.serial_for_url(port,baudrate=9600)
+            pass
         self.servos=[]
         
         for servonum in range(8): # 0..7

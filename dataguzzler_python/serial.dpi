@@ -2,20 +2,15 @@
 # Depends on pyserial package
 from serial.tools.list_ports import comports
 
+from dataguzzler_python import serial
 
-global serial_ports,find_serial_port
+global serial_devices
 
-serial_ports = list(comports())
+if not "serial_devices" in globals() or globals()["serial_devices"] is None:
+    serial_devices = serial.serial_devices # make list of ports accessible
+    pass
 
 
-def find_serial_port(hwinfo):
-    """Given a (portion of a) hardware info field (3rd entry or .hwid attribute) of the
-    serial_ports list, find the name of the corresponding serial port"""
-    filtered = [ port for port in serial_ports if hwinfo in port[2] ]
-    if len(filtered) < 1:
-        raise NameError("Serial port matching \"%s\" not found" % (hwinfo))
-    if len(filtered) > 1:
-        raise NameError("Multiple serial ports matching \"%s\" found" % (hwinfo))
-    return filtered[0][0]
+
 
         

@@ -1,0 +1,67 @@
+import pyvisa
+import pyvisa.constants
+from pyvisa import ResourceManager
+from dataguzzler_python import dgpy
+from dataguzzler_python import visa
+
+# Parameters that can be supplied as keyword arguments
+# Via the include() function:
+visa_addr = None # if None, we ask the user interactively to select a device 
+module_name = None # if provided, this module name given with the device selection
+description = None # if provided, this description given with the device selection.
+
+# additional default parameters to pyvisa.open_resource()
+access_mode=pyvisa.constants.AccessModes.no_lock
+open_timeout=0
+resource_pyclass=None
+
+
+global visa_rm
+global visa_resources
+
+if not "visa_rm" in globals() or globals()["visa_rm"] is None:
+    include(dgpy,"visa.dpi")
+    pass
+    
+if visa_addr is None:
+    # print(rm.list_resources())
+    # print("visa.dpi: pass visa_addr as a keyword argument to select your device")
+    inst = visa.user_select_device(visa_rm,
+                                   visa_resources,
+                                   module_name=module_name,
+                                   description=description,
+                                   access_mode=access_mode,
+                                   open_timeout=open_timeout,
+                                   resource_pyclass=resource_pyclass)
+    pass
+else:
+    try:
+        inst = visa_rm.open_resource(visa_addr,
+                                     access_mode=access_mode,
+                                     open_timeout=open_timeout,
+                                     resource_pyclass=resource_pyclass)
+        pass
+    except ValueError as e:
+        if e.args[0] == 'No device found.':
+            print(f"visa_device.dpi: Error: device '{visa_addr:s}' not found.")
+            print()
+            print("Try another VISA device?")
+            inst = visa.user_select_device(visa_rm,
+                                           visa_resources,
+                                           module_name=module_name,
+                                           description=description,
+                                           access_mode=access_mode,
+                                           open_timeout=open_timeout,
+                                           resource_pyclass=resource_pyclass)
+            if inst is None:
+                raise
+            pass
+        
+            
+        else:
+            raise
+        pass
+            
+        
+    pass
+return inst

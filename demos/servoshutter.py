@@ -27,8 +27,8 @@ class servoshutter(metaclass=dgpy_Module):
       from pololu_rs232servocontroller import pololu_rs232servocontroller
       from servoshutter import servoshutter
 
-      port = find_serial_port("....fixme...")  # replace the "....fixme..." with the serial port device serial number 
-      servocont = pololu_rs232servocontroller("servocont",port)
+      port_name = "....fixme..."  # replace the "....fixme..." with the serial port device serial number 
+      servocont = pololu_rs232servocontroller("servocont",port_name)
 
       shutter = servoshutter("shutter",servocont.servos[0],servocont.servos[1])
 

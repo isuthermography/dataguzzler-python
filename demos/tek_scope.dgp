@@ -2,9 +2,13 @@ from dataguzzler_python import dgpy
 
 include(dgpy,"dgpy_startup.dpi") # If you get a NameError here, be sure you are executing this file with dataguzzler-python
 
+include(dgpy, "visa.dpi")
 
-inst=include(dgpy,"visa.dpi",
-             visa_addr='USB0::1689::874::C046216::0::INSTR')
+visa_addr = None
+#visa_addr='USB0::1689::874::C046216::0::INSTR'
+
+inst=include(dgpy,"visa_device.dpi",
+             visa_addr=visa_addr)
 
 
 print("dataguzzler-python subprocess gpib demo")

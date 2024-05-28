@@ -11,8 +11,11 @@ import atexit
 import ast
 import inspect
 import copy
-
-
+import dataguzzler_python
+from dataguzzler_python import dgpy
+from dataguzzler_python.configfile_utils import scan_source
+from dataguzzler_python.configfile_utils import modify_source_overriding_parameters
+from dataguzzler_python.configfile_utils import modify_source_into_function_call
 #def whofunc(globalkeys,localkeys):
 def whofunc(mod,*args):
     if len(args) == 1:
@@ -68,169 +71,6 @@ def whofunc(mod,*args):
     """
     return filtered_totallist
 
-def scan_source(sourcepath,sourcetext):
-    """Reads in the given text and determines abstract syntax tree.
-    Identifies global parameters and also assignment targets and their
-    type. NoneType is interpreted as a string"""
-    
-    if sourcepath is None:
-        sourcepath="<unknown>"
-        pass
-    
-
-    assignable_param_types={}
-    
-    sourceast=ast.parse(sourcetext,filename=sourcepath)
-
-    globalparams=set([])
-
-    cnt=0
-    while cnt < len(sourceast.body):
-        entry=sourceast.body[cnt]
-
-        if entry.__class__.__name__=="Assign" and len(entry.targets)==1 and entry.targets[0].__class__.__name__=="Name":
-            if entry.value.__class__.__name__=="Constant" and entry.value.value.__class__.__name__=="float":
-                assignable_param_types[entry.targets[0].id] = float
-                pass
-            if entry.value.__class__.__name__=="Constant" and entry.value.value.__class__.__name__=="int":
-                assignable_param_types[entry.targets[0].id] = int
-                pass
-            if entry.value.__class__.__name__=="Constant" and entry.value.value.__class__.__name__=="str":
-                assignable_param_types[entry.targets[0].id] = str
-                pass
-            if entry.value.__class__.__name__=="Constant" and entry.value.value.__class__.__name__=="NoneType":
-                # Treat None as str -- we probably want a filename or similar
-                assignable_param_types[entry.targets[0].id] = str
-                pass
-            pass
-        
-            # print entry.targets
-            
-        if entry.__class__.__name__=="Global":
-            for paramkey in entry.names:
-                # This key declared as a global
-                globalparams.add(paramkey)
-                pass
-            pass
-        cnt+=1
-        pass
-    
-    return (sourceast,globalparams,assignable_param_types)
-    
-
-def modify_source_overriding_parameters(sourcepath,sourceast,paramdict_keys,mode):
-    """Reads in the given syntax tree. Removes assignments of given
-    keys. Returns byte-compiled code ready-to-execute (paramdict
-    values must be independently provided). 
-
-    Mode can be 'all' to indicate keeping the entire module, 'main_thread'
-        to indicate keeping the initial portion prior to dgpython_release_main_thread(), 'sub_thread' to indicate keeping the final portion after dgpython_release_main_thread()"""
-
-    
-    #sourcefile=open(sourcepath,"r")
-    #sourceast=ast.parse(sourcefile.read(),filename=sourcepath)
-    #sourcefile.close()
-    if sourcepath is None:
-        sourcepath="<unknown>"
-        pass
-    if mode == "main_thread":
-        # Want to keep all code up until dgpython_release_main_thread()
-        for cnt in range(len(sourceast.body)):
-            if (sourceast.body[cnt].__class__.__name__ == "Expr" and
-                sourceast.body[cnt].value.__class__.__name__ == "Call" and
-                sourceast.body[cnt].value.func.__class__.__name__ == "Name" and
-                sourceast.body[cnt].value.func.id == "dgpython_release_main_thread"):
-                # Remove all code from here on.
-                while len(sourceast.body) > cnt:
-                    del sourceast.body[-1]
-                    pass
-                break
-            pass
-        pass
-    elif mode == "sub_thread":
-        # Want to keep only code after dgpython_release_main_thread()
-        origbody = sourceast.body
-        sourceast.body = []
-        for cnt in range(len(origbody)):
-            if (origbody[cnt].__class__.__name__ == "Expr" and
-                origbody[cnt].value.__class__.__name__ == "Call" and
-                origbody[cnt].value.func.__class__.__name__ == "Name" and
-                origbody[cnt].value.func.id == "dgpython_release_main_thread"):
-                # Keep all code from here on.
-                for cnt2 in range(cnt+1,len(origbody)):
-                    sourceast.body.append(origbody[cnt2])
-                    pass
-                break
-            pass
-        pass
-    else:
-        assert(mode=="all")
-        pass
-    
-    for paramkey in paramdict_keys:
-        gotassigns=0
-        cnt=0
-        
-        while cnt < len(sourceast.body):
-            entry=sourceast.body[cnt]
-            if entry.__class__.__name__=="Assign" and len(entry.targets)==1 and entry.targets[0].__class__.__name__=="Name":
-                # print entry.targets
-                if entry.targets[0].id==paramkey:
-                    del sourceast.body[cnt]
-                    gotassigns+=1
-                    continue  # bypass cnt increment below
-                pass
-            cnt+=1
-            pass
-
-        if gotassigns != 1:
-            raise ValueError("Overridden parameter %s in %s is not simply assigned exactly once at top level" % (paramkey,sourcepath))
-        pass
-    return sourceast # compile(sourceast,sourcepath,'exec')
-
-def modify_source_into_function_call(sourceast,localkwargs):
-    """Take sourceast, and stuff it into the body of a function call
-which takes the named arguments given in the keys of localkwargs. Then
-generate a call to the function that stores the return in the
-local variable __dgpy_config_ret. Then return an abstract syntax
-tree representing this process. 
-
-The name of the defined function is __dgpy_config_function.
-    """
-    
-    curbody = sourceast.body
-    
-    funcarglist = [ ast.arg(arg=kwarg,annotation=None,type_comment=None) for kwarg in localkwargs ]
-    
-
-    funcargs = ast.arguments(posonlyargs=[],
-                             args=funcarglist,
-                             vararg=None,
-                             kwonlyargs=[],
-                             kw_defaults=[],
-                             kwarg=None,
-                             defaults=[])
-    
-    funcdef = ast.FunctionDef(name="__dgpy_config_function",
-                              args=funcargs,
-                              body=curbody,
-                              decorator_list=[],
-                              returns = None,
-                              type_comment = None)
-
-    funccallkeywords = [ ast.keyword(arg=kwarg,value=ast.Name(id=kwarg,ctx=ast.Load())) for kwarg in localkwargs ] 
-    
-    funcretassign = ast.Assign(targets=[ast.Name(id="__dgpy_config_ret",ctx=ast.Store())],
-                               value=ast.Call(func=ast.Name(id="__dgpy_config_function",ctx=ast.Load()),
-                                              args=[],
-                                              keywords=funccallkeywords),
-                               type_comment = None)
-    
-    moddef = ast.Module([funcdef,funcretassign],type_ignores=[])
-
-    ast.fix_missing_locations(moddef)
-    
-    return moddef
 
 class DGPyConfigFileLoader(importlib.machinery.SourceFileLoader):
     """Loader for .dgp config files with include() 
@@ -283,85 +123,11 @@ class DGPyConfigFileLoader(importlib.machinery.SourceFileLoader):
 
         module.__dict__["_contextstack"]=[ os.path.split(self.sourcetext_context)[0] ]
         sys.path.insert(0,module.__dict__["_contextstack"][-1]) # Current context should always be at start of module search path
+
+        ## store the module structure in a central location so that it is accessible (available as sys.modules["dgpy_config"])
+        #dataguzzler_python.configfile_module = module
         
-        def DGPyConfigFile_include(includepackage,includeurl=None,**kwargs):
-            """Include a sub-config file as if it were 
-            inserted in your main config file. 
-            
-            Provide an imported package (or None) as includepackage, then
-            the relative or absolute path as includeurl, in URL notation 
-            with forward slashes (but not percent-encoding of special 
-            characters).
-            """
-
-            if includeurl is None:
-                if isinstance(includepackage,str):
-                    warnings.warn("include() should now have a packaage (or None) as its first argument", category=DeprecationWarning)
-                    pass
-                includeurl = includepackage
-                includepackage = None
-                pass
-
-            quoted_includeurl=quote(includeurl)
-            
-            if posixpath.isabs(quoted_includeurl):
-                if includepackage is not None:
-                    raise ValueError("Set package context to None if using an absolute include URL such as %s" % (includeurl))
-                includepath = url2pathname(quoted_includeurl)
-                pass
-            else:
-                if includepackage is None:
-                    includepath = os.path.join(module.__dict__["_contextstack"][-1],url2pathname(quoted_includeurl))
-                    pass
-                else:
-                    includepath = os.path.join(os.path.dirname(includepackage.__file__),url2pathname(quoted_includeurl))
-                    pass
-                pass
-            
-            # Now includepath is the path of my include file
-            # push to context stack
-            module.__dict__["_contextstack"].append(includepath)
-            sys.path.insert(0,module.__dict__["_contextstack"][-1]) # Current context should always be at start of module search path
-            
-            # load
-            includefh=open(includepath,"r")
-            includetext=includefh.read()
-            includefh.close()
-            #code = compile(includestr,includepath,'exec')
-
-            (includeast,globalparams,assignable_param_types) = scan_source(includepath,includetext)
-            code = modify_source_overriding_parameters(includepath,includeast,kwargs,mode="all")
-
-            localkwargs = { varname: kwargs[varname] for varname in kwargs if varname not in globalparams }
-            globalkwargs = { varname: kwargs[varname] for varname in kwargs if varname in globalparams }
-
-            function_code = modify_source_into_function_call(code,localkwargs)
-
-
-            exec_code = compile(function_code,includepath,'exec')
-            # run
-            #exec(code,module.__dict__,module.__dict__)
-            localvars={}  # NOTE Must declare variables as global in the .dpi for them to be accessible
-
-            
-            localvars.update(localkwargs)  # include any explicitly passed local parameters 
-
-            # update global dictionary according to explicitly passed global parameters
-            module.__dict__.update(globalkwargs)
-
-            # Run the include file code
-            exec(exec_code,module.__dict__,localvars)
-            
-            # pop from context stack
-            # First remove current context from start of module search path
-            sys.path.remove(module.__dict__["_contextstack"][-1]) 
-            module.__dict__["_contextstack"].pop()
-
-            return localvars["__dgpy_config_ret"]
-        
-
-        
-        module.__dict__["include"]=DGPyConfigFile_include
+        module.__dict__["include"]=dgpy.include
         module.__spec__=spec
         module.__loader__=self
         module.__annotations__={}

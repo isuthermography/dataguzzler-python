@@ -1,0 +1,9 @@
+from dataguzzler_python import dgpy
+
+include(dgpy,"dgpy_startup.dpi") # If you get a NameError here, be sure you are executing this file with dataguzzler-python
+
+inst=include(dgpy,"visa.dpi",
+             visa_addr='TCPIP::acr9000::port::SOCKET')
+
+import acr9000
+mot = acr9000.acr9000("mot",inst)
