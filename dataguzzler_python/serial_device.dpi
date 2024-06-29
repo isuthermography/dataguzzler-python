@@ -57,24 +57,46 @@ else:
         pass
     except serial.serialutil.SerialException as e:
         if e.args[0].startswith("could not open port"):
-            print(f"serial_device.dpi: Error: device '{port_name:s}' not found.")
-            print()
-            print("Try another serial device?")
-            inst = serial.user_select_device(serial_devices,
-                                             module_name=module_name,
-                                             description=description,
-                                             baudrate=baudrate,
-                                             bytesize=bytesize,
-                                             parity=parity,
-                                             stopbits=stopbits,
-                                             timeout=timeout,
-                                             xonxoff=xonxoff,
-                                             rtscts=rtscts,
-                                             write_timeout=write_timeout,
-                                             dsrdtr=dsrdtr,
-                                             inter_byte_timeout=inter_byte_timeout)
-            if inst is None:
-                raise
+            try:
+                device = dgp_serial.find_serial_device(port_name)
+                inst = serial.serial_for_url(device,
+                             baudrate=baudrate,
+                             bytesize=bytesize,
+                             parity=parity,
+                             stopbits=stopbits,
+                             timeout=timeout,
+                             xonxoff=xonxoff,
+                             rtscts=rtscts,
+                             write_timeout=write_timeout,
+                             dsrdtr=dsrdtr,
+                             inter_byte_timeout=inter_byte_timeout)
+                pass
+            except NameError as n:
+                if 'erial device' in n.args[0] and ' found' in n.args[0]:
+                    #print(f"serial_device.dpi: Error: device '{port_name:s}' not found.")
+                    print(f"serial_device.dpi: Error: {n.args[0]:s}")
+                    print()
+                    print("Try another serial device?")
+                    inst = dgp_serial.user_select_device(serial_devices,
+                                                         module_name=module_name,
+                                                         description=description,
+                                                         baudrate=baudrate,
+                                                         bytesize=bytesize,
+                                                         parity=parity,
+                                                         stopbits=stopbits,
+                                                         timeout=timeout,
+                                                         xonxoff=xonxoff,
+                                                         rtscts=rtscts,
+                                                         write_timeout=write_timeout,
+                                                         dsrdtr=dsrdtr,
+                                                         inter_byte_timeout=inter_byte_timeout)
+                    
+                    if inst is None:
+                        raise
+                    pass
+                else:
+                    raise
+                pass
             pass
 
         else:

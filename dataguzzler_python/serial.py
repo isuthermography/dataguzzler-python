@@ -60,3 +60,4 @@ def user_select_device(serial_devices,
                          dsrdtr=dsrdtr,
                          inter_byte_timeout=inter_byte_timeout)
     return inst
+#!!!*** Consider adding proper buffered read
