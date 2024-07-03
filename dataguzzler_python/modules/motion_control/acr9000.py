@@ -300,7 +300,7 @@ class axis(object):
         self.parent._control_socket.read_until(expected =b'>')
         self.parent._control_socket.write(f"DRIVE {self.axis_name:s}\r".encode("utf-8"))
         drive_status_line=self.parent._control_socket.read_until(expected =b'>')
-        matchobj=re.match(rb"""\s*DRIVE[^\r\n]\s+DRIVE\s([ONF]+)\s""",drive_status_line)
+        matchobj=re.match(rb"""\s*DRIVE[^\r\n]+\s+DRIVE\s+([ONF]+)\s""",drive_status_line)
         onoff=matchobj.group(1)
         if onoff==b"ON":
             enabled=True
@@ -453,7 +453,7 @@ class axis(object):
         
         self.parent._abort_wait()
         try:
-            if not self.enabled:
+            if not self._enabled():
                 raise ValueError("Axis is not enabled")
             
             #actpos=self.parent._GetPReg(actualpos[self.axis_num])/self.ppu
@@ -788,13 +788,14 @@ class acr9000(metaclass=Module):
                         efmatch=re.match(rb'EXITFLAG=(\d+)',response[efpos:])
                         assert(efmatch is not None)
                         linenum=int(efmatch.group(1))
-                        with self: # grab our module lock context
-                            with self._waiter_cond:
+                        with self._waiter_cond:
+                            if linenum in self._wait_dict:
                                 wait_obj=self._wait_dict[linenum]
                                 del self._wait_dict[linenum]
                                 wait_obj.notify()
                                 pass
                             pass
+                        
                         continue #Bypass check of wait status until we have something that is not an EXITFLAG. 
                         pass
                     else:
@@ -810,6 +811,7 @@ class acr9000(metaclass=Module):
             pass
         pass
 
+    # !!!*** Waiting prior to motion finishing does not seem to work (waits forever)
     def _wait(self,axislist):
         self._abort_wait()
         try:
@@ -888,7 +890,7 @@ class acr9000(metaclass=Module):
         self._control_socket.write(f'?P{regnum:d}\r'.encode("utf-8"))
         resp = self._control_socket.read_until(expected=b'>') #Wait for prompt
 
-        matchobj = re.match(rb"""\s*P\d+ +([-+]?(\d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?)\s""", resp)
+        matchobj = re.match(rb"""\s*[?]P\d+\s+([-+]?(\d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?)\s""", resp)
         value = float(matchobj.group(1))
         return value
         
