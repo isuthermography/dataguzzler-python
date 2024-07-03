@@ -3,10 +3,11 @@ import collections
 import numbers
 import re
 import threading
+import random
 import numpy as np
 import pint
 from dataguzzler_python import dgpy
-from dataguzzler_python.dgpy import Module
+from dataguzzler_python.dgpy import Module,InitCompatibleThread
 
 STARTUPTIMEOUT=600 # ms
 NORMALTIMEOUT=None # disable timeout
@@ -252,7 +253,7 @@ class axis_group:
         pass
     pass
 
-class axis:
+class axis(object):
     axis_name=None 
     proglevel=None # acr9000 program level assigned to this axis (integer)
     axis_num=None # axis0, axis1, ... (integer)
@@ -295,16 +296,16 @@ class axis:
     def _enabled(self):
         assert(self.parent._wait_status == 'Cancelled')
         # Must be called between _abort_wait and _restart_wait
-        self.parent._control_socket.write(f"PROG{self.proglevel:d}\r")
-        self.parent._control_socket.read_until(expected ='>')
-        self.parent._control_socket.write(f"DRIVE {self.axisname:s}\r")
-        drive_status_line=self.parent._control_socket.read_until(expected ='>')
-        matchobj=re.match(r""" *DRIVE[^\r\n] +DRIVE ([ONF]+) """,drive_status_line)
+        self.parent._control_socket.write(f"PROG{self.proglevel:d}\r".encode("utf-8"))
+        self.parent._control_socket.read_until(expected =b'>')
+        self.parent._control_socket.write(f"DRIVE {self.axis_name:s}\r".encode("utf-8"))
+        drive_status_line=self.parent._control_socket.read_until(expected =b'>')
+        matchobj=re.match(rb"""\s*DRIVE[^\r\n]\s+DRIVE\s([ONF]+)\s""",drive_status_line)
         onoff=matchobj.group(1)
-        if onoff=="ON":
+        if onoff==b"ON":
             enabled=True
             pass
-        elif onoff=="OFF":
+        elif onoff==b"OFF":
             enabled=False
             pass
         else:
@@ -313,9 +314,9 @@ class axis:
 
         if enabled:
             # Double-check that the kill-all-motion-request (KAMR) bit is not asserted
-            self.parent._control_socket.write(f"?bit{KAMRbit[self.axis]:d}\r")
-            KAMR_line=self.parent._control_socket.read_until(expected='>')
-            KAMR_match=re.match(r""" *[?]bit\d+ +(\d+) """, KAMR_line)
+            self.parent._control_socket.write(f"?bit{KAMRbit[self.axis_num]:d}\r".encode("utf-8"))
+            KAMR_line=self.parent._control_socket.read_until(expected=b'>')
+            KAMR_match=re.match(rb"""\s*[?]bit\d+\s+(\d+)\s""", KAMR_line)
             bit_status=int(KAMR_match.group(1))
             if bit_status != 0:
                 enabled=False
@@ -326,36 +327,36 @@ class axis:
     def zero(self):
         self.parent._abort_wait()
         try:
-            self.parent._control_socket.write(f"PROG{self.proglevel:d}\r")
-            self.parent._control_socket.read_until(expected='>')
+            self.parent._control_socket.write(f"PROG{self.proglevel:d}\r".encode("utf-8"))
+            self.parent._control_socket.read_until(expected=b'>')
             # issue REN command to cancel any preexisting position command
-            self.parent._control_socket.write(f"REN {self.axisname:s}\r")
-            self.parent._control_socket.read_until(expected='>')
+            self.parent._control_socket.write(f"REN {self.axis_name:s}\r".encode("utf-8"))
+            self.parent._control_socket.read_until(expected=b'>')
 
             # set the target equal to the actual position
-            self.parent._control_socket.write(f"P{targetpos[self.axis]:d}=P{trajectorypos[self.axis]:d}\r")
-            self.parent._control_socket.read_until(expected='>')
+            self.parent._control_socket.write(f"P{targetpos[self.axis_num]:d}=P{trajectorypos[self.axis_num]:d}\r".encode("utf-8"))
+            self.parent._control_socket.read_until(expected=b'>')
             # reset the encoder to define the current position as '0'
-            self.parent._control_socket.write(f"RES {self.axisname:s}\r")
-            self.parent._control_socket.read_until(expected='>')
+            self.parent._control_socket.write(f"RES {self.axis_name:s}\r".encode("utf-8"))
+            self.parent._control_socket.read_until(expected=b'>')
             # set the target equal to the actual position
-            self.parent._control_socket.write(f"P{targetpos[self.axis]:d}=P{trajectorypos[self.axis]:d}\r")
-            self.parent._control_socket.read_until(expected='>')
+            self.parent._control_socket.write(f"P{targetpos[self.axis_num]:d}=P{trajectorypos[self.axis_num]:d}\r".encode("utf-8"))
+            self.parent._control_socket.read_until(expected=b'>')
 
-            if abs(self.parent._GetPReg(actualpos[self.axis])) <= 5.0:
+            if abs(self.parent._GetPReg(actualpos[self.axis_num])) <= 5.0:
                 # allow up to +- 5 encoder pulses of error
                 return 0.0
 
             else:
-                raise IOError(f"reset of axis {self.axisname:s} to zero failed")
+                raise IOError(f"reset of axis {self.axis_name:s} to zero failed")
             pass
         finally:
-            self._restart_wait()
+            self.parent._restart_wait()
             pass
         pass
 
     def wait(self):
-        self.parent._wait([self.axisname])
+        self.parent._wait([self.axis_name])
         pass
     
         
@@ -363,8 +364,8 @@ class axis:
     def moving(self):
         self.parent._abort_wait()
         try:
-            trajpos=self.parent._GetPReg(trajectorypos[self.axis])
-            targpos=self.parent._GetPReg(targetpos[self.axis])
+            trajpos=self.parent._GetPReg(trajectorypos[self.axis_num])
+            targpos=self.parent._GetPReg(targetpos[self.axis_num])
             return trajpos!=targpos
         finally:
             self.parent._restart_wait()
@@ -396,14 +397,14 @@ class axis:
             if not self._enabled():
                 raise ValueError("Axis is not enabled")
             
-            actpos=self.parent._GetPReg(actualpos[self.axis])/self.ppu
+            actpos=self.parent._GetPReg(actualpos[self.axis_num])/self.ppu
             self.targetpos=raw_value + actpos
             
-            self.parent._control_socket.write(f"PROG{self.proglevel:d}\r")
-            self.parent._control_socket.read_until(expected='>')
+            self.parent._control_socket.write(f"PROG{self.proglevel:d}\r".encode("utf-8"))
+            self.parent._control_socket.read_until(expected=b'>')
 
-            self.parent._control_socket.write(f"{self.axis_name:s}{self.targetpos:.10g}\r")
-            self.parent._control_socket.read_until(expected='>')
+            self.parent._control_socket.write(f"{self.axis_name:s}{self.targetpos:.10g}\r".encode("utf-8"))
+            self.parent._control_socket.read_until(expected=b'>')
             pass
         finally:
             self.parent._restart_wait()
@@ -413,11 +414,11 @@ class axis:
     def cancel(self):
         self.parent._abort_wait()
         try:
-            self.parent._control_socket.write(f"HALT PROG{self.proglevel:d}\r")
-            self.parent._control_socket.read_until(expected='>')
+            self.parent._control_socket.write(f"HALT PROG{self.proglevel:d}\r".encode("utf-8"))
+            self.parent._control_socket.read_until(expected=b'>')
 
-            self.parent._control_socket.write(f"P{targetpos[self.axis]:d}=P{trajectorypos[self.axis]:d}\r") # set the target equal to the actual position so that we record the axis as not moving.
-            self.parent._control_socket.read_until(expected='>')
+            self.parent._control_socket.write(f"P{targetpos[self.axis_num]:d}=P{trajectorypos[self.axis_num]:d}\r".encode("utf-8")) # set the target equal to the actual position so that we record the axis as not moving.
+            self.parent._control_socket.read_until(expected=b'>')
             pass
         finally:
             self.parent._restart_wait()
@@ -428,7 +429,7 @@ class axis:
     def pos(self):
         self.parent._abort_wait()
         try:
-            return (self.parent._GetPReg(actualpos[self.axis])/self.ppu)*self.unit_quantity
+            return (self.parent._GetPReg(actualpos[self.axis_num])/self.ppu)*self.unit_quantity
         finally:
             self.parent._restart_wait()
             pass
@@ -455,14 +456,14 @@ class axis:
             if not self.enabled:
                 raise ValueError("Axis is not enabled")
             
-            #actpos=self.parent._GetPReg(actualpos[self.axis])/self.ppu
+            #actpos=self.parent._GetPReg(actualpos[self.axis_num])/self.ppu
             self.targetpos=raw_value
             
-            self.parent._control_socket.write(f"PROG{self.proglevel:d}\r")
-            self.parent._control_socket.read_until(expected='>')
+            self.parent._control_socket.write(f"PROG{self.proglevel:d}\r".encode("utf-8"))
+            self.parent._control_socket.read_until(expected=b'>')
 
-            self.parent._control_socket.write(f"{self.axis_name:s}{self.targetpos:.10g}\r")
-            self.parent._control_socket.read_until(expected='>')
+            self.parent._control_socket.write(f"{self.axis_name:s}{self.targetpos:.10g}\r".encode("utf-8"))
+            self.parent._control_socket.read_until(expected=b'>')
             pass
         finally:
             self.parent._restart_wait()
@@ -486,23 +487,23 @@ class axis:
         try:
             if enabled:
                 # issue ctrl-y to clear all kill-all-motion-request (KAMR) flags
-                self.parent._control_socket.write(f"PROG{self.proglevel:d}\r")
-                self.parent._control_socket.read_until(expected='>')
+                self.parent._control_socket.write(f"PROG{self.proglevel:d}\r".encode("utf-8"))
+                self.parent._control_socket.read_until(expected=b'>')
                 pass
-            self.parent._control_socket.write(f"PROG{self.proglevel:d}\r")
-            self.parent._control_socket.read_until(expected='>')
+            self.parent._control_socket.write(f"PROG{self.proglevel:d}\r".encode("utf-8"))
+            self.parent._control_socket.read_until(expected=b'>')
             if enabled:
                 # issue REN command to cancel any preexisting position
-                self.parent._control_socket.write(f"REN {self.axis_name:s}\r")
-                self.parent._control_socket.read_until(expected='>')
-                self.parent._control_socket.write(f"P{targetpos[self.axis]:d}=P{trajectorypos[self.axis]:d}\r") # set the target equal to the actual position
-                self.parent._control_socket.read_until(expected='>')
-                self.parent._control_socket.write(f"DRIVE ON {self.axis_name:s}\r")
-                self.parent._control_socket.read_until(expected='>')
+                self.parent._control_socket.write(f"REN {self.axis_name:s}\r".encode("utf-8"))
+                self.parent._control_socket.read_until(expected=b'>')
+                self.parent._control_socket.write(f"P{targetpos[self.axis_num]:d}=P{trajectorypos[self.axis_num]:d}\r".encode("utf-8")) # set the target equal to the actual position
+                self.parent._control_socket.read_until(expected=b'>')
+                self.parent._control_socket.write(f"DRIVE ON {self.axis_name:s}\r".encode("utf-8"))
+                self.parent._control_socket.read_until(expected=b'>')
                 pass
             else:
-                self.parent._control_socket.write(f"DRIVE OFF {self.axis_name:s}\r")
-                self.parent._control_socket.read_until(expected='>')
+                self.parent._control_socket.write(f"DRIVE OFF {self.axis_name:s}\r".encode("utf-8"))
+                self.parent._control_socket.read_until(expected=b'>')
                 pass
             pass
         
@@ -540,39 +541,47 @@ class acr9000(metaclass=Module):
         self.axisdict=collections.OrderedDict()
         self._wait_status="Cancelled"
         #_configure_socket(comm1)
+        _set_timeout(self._control_socket,50) #Set timeout to 50ms
+        gotbuf="Startup"
+        while len(gotbuf) > 0:
+            gotbuf=self._control_socket.read_until(expected=b">")
+            pass
         _set_timeout(self._control_socket,STARTUPTIMEOUT)
-        self._control_socket.write("HALT ALL\r") # stop all axes
-        response=self._control_socket.read_until(expected='>')
-        assert(response=="SYS>")
+        self._control_socket.write(b"SYS\r") # Change to system mode
+        response=self._control_socket.read_until(expected=b'>')
+        assert(response.endswith(b"SYS>"))
 
+        self._control_socket.write(b"HALT ALL\r") # stop all axes
+        response=self._control_socket.read_until(expected=b'>')
+        
         # search for axes
         for proglevel in range(NUMPROGLEVELS):
-            self._control_socket.write(f"PROG{proglevel:d}\r")
-            response=self._control_socket.read_until(expected='>')
-            matchobj=re.match(r""" *PROG\d+ +P(\d+) *""",response)
+            self._control_socket.write(f"PROG{proglevel:d}\r".encode("utf-8"))
+            response=self._control_socket.read_until(expected=b'>')
+            matchobj=re.match(rb"""\s*PROG\d+\s+P(\d+)\s*""",response)
             if matchobj is not None:
                 response_proglevel=int(matchobj.group(1))
                 if response_proglevel==proglevel:
                     # successful match
                     # print(f"found program level {proglevel:d}")
-                    self._control_socket.write("ATTACH\r")
-                    attach_response=self._control_socket.read_until(expected='>')
-                    attach_lines=attach_response.split("\n")
+                    self._control_socket.write(b"ATTACH\r")
+                    attach_response=self._control_socket.read_until(expected=b'>')
+                    attach_lines=attach_response.split(b"\n")
                     for attach_line in attach_lines:
-                        attach_match=re.match(r""" *ATTACH SLAVE\d+ AXIS(\d+) "([^"]*)".""",attach_line)
+                        attach_match=re.match(rb"""\s*ATTACH SLAVE\d+ AXIS(\d+)\s"([^"]*)".""",attach_line)
                         if attach_match is not None:
                             axis_num = int(attach_match.group(1))
-                            axis_name = attach_match.group(2)
+                            axis_name = attach_match.group(2).decode("utf-8")
                             if axis_num < MAXAXES and len(axis_name) > 0:
                                 #Got valid attach line
                                 unit_factor = axis.units_to_factor(axis_units[axis_name])
                                 #Extract the PPU
-                                self._control_socket.write(f'AXIS{axis_num:d} PPU\r')
-                                ppu_response=self._control_socket.read_until(expected='>')
-                                ppu_match = re.match(" *AXIS\\d+ PPU\r\n([-+]?(\\d+(\\.\\d*)?|\\.\\d+)([eE][-+]?\\d+)?)\r\nP\\d+>",ppu_response)
+                                self._control_socket.write(f'AXIS{axis_num:d} PPU\r'.encode("utf-8"))
+                                ppu_response=self._control_socket.read_until(expected=b'>')
+                                ppu_match = re.match(b"\\s*AXIS\\d+ PPU\r\n([-+]?(\\d+(\\.\\d*)?|\\.\\d+)([eE][-+]?\\d+)?)\r\nP\\d+>",ppu_response)
                                 if ppu_match is None:
                                     raise ValueError(f'Bad PPU line for axis {axis_name:s}')
-                                ppu = float(ppu_match.group(4))
+                                ppu = float(ppu_match.group(1))
                                 Axis = axis(axis_name=axis_name,
                                             proglevel=proglevel,
                                             axis_num=axis_num,
@@ -601,75 +610,75 @@ class acr9000(metaclass=Module):
         self.all = axis_group(self, list(self.axisdict.keys()))
         
         #Use spareprog to store our monitoring program
-        self._control_socket.write(f'PROG{self._spareprog:d}\r')
-        self._control_socket.read_until(expected='>') #"P00>"
+        self._control_socket.write(f'PROG{self._spareprog:d}\r'.encode("utf-8"))
+        self._control_socket.read_until(expected=b'>') #"P00>"
         
-        self._control_socket.write('HALT\r')
-        self._control_socket.read_until(expected='>') #"P00>"
+        self._control_socket.write(b'HALT\r')
+        self._control_socket.read_until(expected=b'>') #"P00>"
         
-        self._control_socket.write('NEW\r') #Clear program memory
-        self._control_socket.read_until(expected='>') #"P00>"
+        self._control_socket.write(b'NEW\r') #Clear program memory
+        self._control_socket.read_until(expected=b'>') #"P00>"
 
-        self._control_socket.write('SYS\r')
-        self._control_socket.read_until(expected='>') #"SYS>"
+        self._control_socket.write(b'SYS\r')
+        self._control_socket.read_until(expected=b'>') #"SYS>"
 
-        self._control_socket.write('DIM P (100)\r') #Reserve variables 
-        self._control_socket.read_until(expected='>') #"SYS>"
+        self._control_socket.write(b'DIM P (100)\r') #Reserve variables 
+        self._control_socket.read_until(expected=b'>') #"SYS>"
 
-        self._control_socket.write('DIM DEF (100)\r') #Reserve variable definitions
-        self._control_socket.read_until(expected='>') #"SYS>"
+        self._control_socket.write(b'DIM DEF (100)\r') #Reserve variable definitions
+        self._control_socket.read_until(expected=b'>') #"SYS>"
 
-        self._control_socket.write(f'DIM PROG {self._spareprog:d} 16384\r') #Reserve 4 integer variables
-        self._control_socket.read_until(expected='>') #"SYS>"
+        self._control_socket.write(f'DIM PROG {self._spareprog:d} 16384\r'.encode("utf-8")) #Reserve 4 integer variables
+        self._control_socket.read_until(expected=b'>') #"SYS>"
 
-        self._control_socket.write(f'PROG{self._spareprog:d}\r')
-        self._control_socket.read_until(expected='>') #"P00>"
+        self._control_socket.write(f'PROG{self._spareprog:d}\r'.encode("utf-8"))
+        self._control_socket.read_until(expected=b'>') #"P00>"
 
-        self._control_socket.write(f'#DEFINE EXITFLAG P0\r') #Flag is integer var #0
-        self._control_socket.read_until(expected='>') #"P00>"
+        self._control_socket.write(f'#DEFINE EXITFLAG P0\r'.encode("utf-8")) #Flag is integer var #0
+        self._control_socket.read_until(expected=b'>') #"P00>"
 
-        self._control_socket.write('5 PRINT \"STRT <\"\r') #Program starting printout
-        self._control_socket.read_until(expected='>') #"P00>"
+        self._control_socket.write(b'5 PRINT \"STRT <\"\r') #Program starting printout
+        self._control_socket.read_until(expected=b'>') #"P00>"
 
-        self._control_socket.write('10 REM start of main loop\r')
-        self._control_socket.read_until(expected='>') #"P00>"
+        self._control_socket.write(b'10 REM start of main loop\r')
+        self._control_socket.read_until(expected=b'>') #"P00>"
 
         #The various waits will insert additional lines of code here that check the termination conditions and jump to line 1000 when a condition is satisfied 
-        self._control_socket.write('999 GOTO 10\r')
-        self._control_socket.read_until(expected='>') #"P00>"
+        self._control_socket.write(b'999 GOTO 10\r')
+        self._control_socket.read_until(expected=b'>') #"P00>"
 
-        self._control_socket.write('1000 PRINT \"EXITFLAG=\";EXITFLAG;\" >\"\r')
-        self._control_socket.read_until(expected='>') #" >"
-        self._control_socket.read_until(expected='>') #"P00>"
+        self._control_socket.write(b'1000 PRINT \"EXITFLAG=\";EXITFLAG;\" >\"\r')
+        self._control_socket.read_until(expected=b'>') #" >"
+        self._control_socket.read_until(expected=b'>') #"P00>"
 
-        self._control_socket.write('1005 REM Just busy-loop until the user presses escape\r') #This is because the program ending itself triggers an ACR9000  firmware bug 
-        self._control_socket.read_until(expected='>') #"P00>"
+        self._control_socket.write(b'1005 REM Just busy-loop until the user presses escape\r') #This is because the program ending itself triggers an ACR9000  firmware bug 
+        self._control_socket.read_until(expected=b'>') #"P00>"
 
-        self._control_socket.write('1007 GOTO 1007\r')
-        self._control_socket.read_until(expected='>') #"P00>"
+        self._control_socket.write(b'1007 GOTO 1007\r')
+        self._control_socket.read_until(expected=b'>') #"P00>"
 
         #Turn off all axes
         for axis_name in self.axisdict:
             Axis=self.axisdict[axis_name]
-            self._control_socket.write(f'PROG{Axis.proglevel:d}\r')
-            self._control_socket.read_until(expected='>') #"P00>"
+            self._control_socket.write(f'PROG{Axis.proglevel:d}\r'.encode("utf-8"))
+            self._control_socket.read_until(expected=b'>') #"P00>"
 
             # issue REN command to cancel any preexisting position
-            self._control_socket.write(f'REN {Axis.axis_name:s}\r')
-            self._control_socket.read_until(expected='>') #"P00>"
+            self._control_socket.write(f'REN {Axis.axis_name:s}\r'.encode("utf-8"))
+            self._control_socket.read_until(expected=b'>') #"P00>"
 
-            self._control_socket.write(f'P{_targetpos[Axis.axis_num]:d}=P{_trajectorypos[Axis.axis_num]:d}\r') # set the target equal to the actual position
-            self._control_socket.read_until(expected='>') #"P00>"
+            self._control_socket.write(f'P{targetpos[Axis.axis_num]:d}=P{trajectorypos[Axis.axis_num]:d}\r'.encode("utf-8")) # set the target equal to the actual position
+            self._control_socket.read_until(expected=b'>') #"P00>"
 
-            self._control_socket.write(f'DRIVE OFF {Axis.axis_name:s}\r')
-            self._control_socket.read_until(expected='>') #"P00>"
+            self._control_socket.write(f'DRIVE OFF {Axis.axis_name:s}\r'.encode("utf-8"))
+            self._control_socket.read_until(expected=b'>') #"P00>"
 
             # enable multiple-move buffering on this program level
-            self._control_socket.write(f'DIM MBUF(10)\r')
-            self._control_socket.read_until(expected='>') #"P00>"
+            self._control_socket.write(b'DIM MBUF(10)\r')
+            self._control_socket.read_until(expected=b'>') #"P00>"
 
-            self._control_socket.write(f'MBUF ON\r')
-            self._control_socket.read_until(expected='>') #"P00>"
+            self._control_socket.write(b'MBUF ON\r')
+            self._control_socket.read_until(expected=b'>') #"P00>"
             pass
 
         _set_timeout(self._control_socket,NORMALTIMEOUT)
@@ -685,7 +694,11 @@ class acr9000(metaclass=Module):
         self._wait_dict={}
         self._wait_status='Cancelled'
         self._waiter_thread=threading.Thread(target=self._waiter_thread_code)
-        self._waiter_thread.start()
+        with self._waiter_cond:
+            self._waiter_thread.start()
+            self._waiter_ack_cond.wait()
+            pass
+        self._restart_wait()
         pass
 
     def waitall(self):
@@ -753,7 +766,7 @@ class acr9000(metaclass=Module):
         pass
 """
     def _waiter_thread_code(self):
-        InitCompatibleThread(self)
+        InitCompatibleThread(self,'_waiter_thread')
 
         while True:
             with self._waiter_cond:
@@ -761,20 +774,20 @@ class acr9000(metaclass=Module):
                     self._waiter_ack_cond.notify()
                     self._waiter_cond.wait()
                     pass
-                elif wait_status=='Waiting':
-                    self._waiter_ack_cond.notify()
+                elif self._wait_status=='Waiting':
                     pass
+                self._waiter_ack_cond.notify()
                 wait_status=self._wait_status
                 pass
             while wait_status=='Waiting':
                 #response=self._read()
-                response=self._control_socket.read_until(expected='>') 
+                response=self._control_socket.read_until(expected=b'>') 
                 if response is not None:
-                    efpos=response.find('EXITFLAG')
+                    efpos=response.find(b'EXITFLAG')
                     if efpos >= 0:
-                        efmatch=re.match(r'EXITFLAG=(\d+)',response[efpos:])
+                        efmatch=re.match(rb'EXITFLAG=(\d+)',response[efpos:])
                         assert(efmatch is not None)
-                        linenum=efmatch.group(1)
+                        linenum=int(efmatch.group(1))
                         with self: # grab our module lock context
                             with self._waiter_cond:
                                 wait_obj=self._wait_dict[linenum]
@@ -813,37 +826,37 @@ class acr9000(metaclass=Module):
                     pass
                     
                 assert(linenum not in self._wait_dict)
-                self._wait_cond = threading.Cond(lock=self._waiter_cond)
+                self._wait_cond = threading.Condition(lock=self._waiter_cond)
                 self._wait_dict[linenum] = self._wait_cond
                 pass
             
-            self._control_socket.write(f'PROG{self._spareprog:d}\r')
-            self._control_socket.read_until(expected='>') #"P00>"
+            self._control_socket.write(f'PROG{self._spareprog:d}\r'.encode("utf-8"))
+            self._control_socket.read_until(expected=b'>') #"P00>"
             condition = "AND ".join([f"(P{trajectorypos[self.axisdict[axis_name].axis_num]:d}=P{targetpos[self.axisdict[axis_name].axis_num]:d}) " for axis_name in axislist])
             condition_line = f"{linenum:d} IF ( {condition:s}) THEN EXITFLAG={linenum:d}:GOTO 1000 \r"
-            self._control_socket.write(condition_line)
-            self._control_socket.read_until(expected='>') #"P00>"
+            self._control_socket.write(condition_line.encode("utf-8"))
+            self._control_socket.read_until(expected=b'>') #"P00>"
             
             pass
         finally:
             self._restart_wait()
             pass
-        with wait_cond:
-            wait_cond.wait()
+        with self._wait_cond:
+            self._wait_cond.wait()
             pass 
         pass
 
     def _restart_wait(self):
         assert(self._wait_status == 'Cancelled')
         # go to our spare program level
-        self._control_socket.write(f'PROG{self._spareprog:d}\r')
-        self._control_socket.read_until(expected='>') #"P00>"
+        self._control_socket.write(f'PROG{self._spareprog:d}\r'.encode("utf-8"))
+        self._control_socket.read_until(expected=b'>') #"P00>"
         # issue the LRUN command to run the program
-        self._control_socket.write(f'LRUN\r')
-        ## set line terminator to '<' instead of '>'
+        self._control_socket.write(b'LRUN\r')
+        ## set line terminator to '<' instead of b'>'
         #self._control_socket.read_termination=">"
-        STRT_response=self._control_socket.read_until(expected='<')#Wait for STRT response. Note the weird terminator
-        STRT_idx=STRT_response.find('STRT')
+        STRT_response=self._control_socket.read_until(expected=b'<')#Wait for STRT response. Note the weird terminator
+        STRT_idx=STRT_response.find(b'STRT')
         assert(STRT_idx >= 0) #Program started succesfully. Delegate to waiter thread. 
         with self._waiter_cond:
             assert(self._wait_status=="Cancelled")
@@ -860,23 +873,23 @@ class acr9000(metaclass=Module):
             self._wait_status = 'Cancelled'
             
             #Press the escape key
-            self._control_socket.write(f'\x1b')
+            self._control_socket.write(b'\x1b')
             #Wait for prompt
             self._waiter_ack_cond.wait()
             pass
-        self._control_socket.write('HALT\r')
-        self._control_socket.read_until(expected='>') #Wait for prompt
+        self._control_socket.write(b'HALT\r')
+        self._control_socket.read_until(expected=b'>') #Wait for prompt
         pass
     
                 
     def _GetPReg(self, regnum):
         # Call between _abort_wait and _restart_wait
         assert(self._wait_status == 'Cancelled')
-        self._control_socket.write(f'?P{regnum:d}\r')
-        resp = self._control_socket.read_until(expected='>') #Wait for prompt
+        self._control_socket.write(f'?P{regnum:d}\r'.encode("utf-8"))
+        resp = self._control_socket.read_until(expected=b'>') #Wait for prompt
 
-        matchobj = re.match(r""" *P\d+ +([-+]?(\d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?) """, resp)
-        value = float(matchobj.group(4))
+        matchobj = re.match(rb"""\s*P\d+ +([-+]?(\d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?)\s""", resp)
+        value = float(matchobj.group(1))
         return value
         
     pass

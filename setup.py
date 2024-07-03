@@ -132,6 +132,6 @@ setup(name="dataguzzler_python",
           "install": InstallCommand,
           "build": BuildCommand
       },
-      packages=["dataguzzler_python","dataguzzler_python.bin","dataguzzler_python.modules"],
+      packages=["dataguzzler_python","dataguzzler_python.bin","dataguzzler_python.modules","dataguzzler_python.modules.motion_control"],
       package_data=package_data,
       entry_points={"console_scripts": console_scripts_entrypoints })

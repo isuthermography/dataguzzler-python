@@ -3,8 +3,8 @@ from dataguzzler_python import dgpy
 include(dgpy,"dgpy_startup.dpi") # If you get a NameError here, be sure you are executing this file with dataguzzler-python
 
 
-include(dgpy,"gpib.dpi",
-        gpib_addr="GPIB0::12::INSTR")
+include(dgpy,"visa_device.dpi",
+        visa_addr="GPIB0::12::INSTR")
 
 print("dataguzzler-python subprocess gpib demo")
 print("------------------------------------------")
