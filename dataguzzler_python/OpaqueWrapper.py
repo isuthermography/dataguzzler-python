@@ -1,6 +1,7 @@
 import sys
 import os
 import threading
+import traceback
 
 from .context import RunInContext,ThreadContext
 
@@ -12,6 +13,7 @@ magicnames=set(["__del__", "__cmp__", "__eq__","__ne__","__lt__","__gt__","__le_
 # Not all magic functions are wrappable... for example  explicit __str__; also __del__ doesn't make ansy sense. We don't currently support proxys of descriptors ("__get__","__set__", and "__delete__")
 magicnames_proxyable=set(["__cmp__", "__eq__","__ne__","__lt__","__gt__","__le__", "__ge__", "__pos__", "__neg__", "__abs__", "__invert__", "__round__", "__floor__", "__ceil__", "__trunc__", "__add__", "__sub__", "__mul__", "__floordiv__", "__div__", "__truediv__", "__mod__", "__divmod__", "__pow__", "__lshift__", "__rshift__", "__and__", "__or__", "__xor__", "__radd__", "__rsub__", "__rmul__", "__rfloordiv__", "__rdiv__", "__rtruediv__", "__rmod__", "__rdivmod__", "__rpow__", "__rlshift__", "__rrshift__", "__rand__", "__ror__", "__rxor__", "__iadd__", "__isub__", "__imul__", "__ifloordiv__", "__idiv__", "__itruediv__", "__imod__", "__ipow__", "__ilshift__", "__irshift__", "__iand__", "__ior__", "__ixor__", "__int__", "__long__", "__float__", "__complex__", "__oct__", "__hex__", "__index__", "__trunc__", "__repr__","__bytes__", "__format__", "__hash__", "__nonzero__", "__dir__", "__sizeof__","__delattr__","__setattr__","__len__","__getitem__", "__setitem__","__delitem__","__iter__","__next__","__reversed__", "__contains__", "__missing__","__call__", "__getattr__","__enter__","__exit__","__copy__","__deepcopy__","__getinitargs__","__getnewargs__","__getstate__","__setstate__"]) #  ,"__subclasscheck__","__instancecheck__"])  NOTE: subclasscheck and/or instancecheck seem to cause exceptions: _abc_subclasscheck(cls, subclass)  TypeError: issubclass() arg 1 must be a class
 
+magicnames_proxyable_ordered = list(magicnames_proxyable)
 
 def forceunwrap(wrapperobj):
     wrappedobj = object.__getattribute__(wrapperobj,"_wrappedobj")
@@ -51,10 +53,19 @@ def OpaqueWrapper_dispatch(wrapperobj,methodname, *args, **kwargs):
     #sys.stderr.write("str(wrappedobj)=%s\n" % (str(wrappedobj)))
     #sys.stderr.write("method=%s\n" % (str(junk)))
     return RunInContext(originating_context,lambda *args,**kwargs: getattr(wrappedobj,methodname)(*args, **kwargs),methodname,args,kwargs)
-    
+    #try:
+    #    ret=RunInContext(originating_context,lambda *args,**kwargs: getattr(wrappedobj,methodname)(*args, **kwargs),methodname,args,kwargs)
+    #    pass
+    #except:
+    #    sys.stderr.write(f"Exception: {str(sys.exc_info()[:2]):s}\n")
+    #    sys.stderr.write(f"{traceback.format_exc():s}\n")
+    #    raise
+    #sys.stderr.write(f"Returned object of type {type(ret).__name__:s}\n")
+    #return ret
+ 
 OpaqueWrapper_nonwrapped_attrs=set(["__getattribute__","__str__","__del__","who","help"])
 
-class OpaqueWrapper(object):
+class OpaqueWrapper_prototype(object):
     _originating_context = None
     _wrappedobj = None
     def __init__(self,originating_context,wrappedobj):
@@ -128,8 +139,68 @@ class OpaqueWrapper(object):
 # with __getattribute__() 
 
 
-for magicname in magicnames_proxyable:
-    attrfunc=lambda magicname: lambda self, *args, **kwargs: OpaqueWrapper_dispatch(self,magicname,*args,**kwargs)
-    # Write this method into the class. 
-    setattr(OpaqueWrapper,magicname,attrfunc(magicname))
-    pass
+#for magicname in magicnames_proxyable:
+    #attrfunc=lambda magicname: lambda self, *args, **kwargs: OpaqueWrapper_dispatch(self,magicname,*args,**kwargs)
+    ## Write this method into the class. 
+    #setattr(OpaqueWrapper,magicname,attrfunc(magicname))
+    #pass
+
+OpaqueWrapper_dict = {} # Dictionary by boolean maps of copies of the OpaqueWrapper class with corresponding magic methods forwarded
+
+# Note: MagicBooleanMap_cache creates a memory leak where classes will not be destroyed. This is better than conflating two classes that might have the same id
+MagicBooleanMap_cache = {} # Dictionary by class id of (class, MagicBooleanMap) 
+    
+def MagicBooleanMap_generate(cls):
+    assert(type(cls) is type) # cls should be a class
+    listmap = [ hasattr(cls,magicname) for magicname in magicnames_proxyable_ordered] # returns a list of booleans
+    intlist = []
+    index = 0
+    while index < len(listmap):
+        bit_index = 0
+        int_value = 0
+        while bit_index < 31 and index < len(listmap):
+            if listmap[index]:
+                int_value = int_value | (1 << bit_index)
+                pass
+            bit_index += 1
+            index += 1
+            pass
+        intlist.append(int_value)
+        pass
+    return tuple(intlist) # returns hashable tuple of bit mask integers
+    
+def MagicBooleanMap(cls):
+    if id(cls) in MagicBooleanMap_cache:
+        (map_cls, map) = MagicBooleanMap_cache[id(cls)]
+        return map
+    map = MagicBooleanMap_generate(cls)
+    MagicBooleanMap_cache[id(cls)] = (cls, map)
+    return map
+
+def OpaqueWrapper(originating_context, wrappedobj):
+    cls = type(wrappedobj)
+    boolean_map = MagicBooleanMap(cls)
+    if boolean_map in OpaqueWrapper_dict:
+        return OpaqueWrapper_dict[boolean_map](originating_context, wrappedobj)
+
+    # Create derived class because this is the best way to
+    # copy a class definition
+
+    class OpaqueWrapper(OpaqueWrapper_prototype):
+        def __init__(self, originating_context, wrappedobj):
+            super().__init__(originating_context, wrappedobj)
+            pass
+        pass
+
+    for magicname in magicnames_proxyable:
+        if hasattr(cls, magicname):
+            attrfunc=lambda magicname: lambda self, *args, **kwargs: OpaqueWrapper_dispatch(self,magicname,*args,**kwargs)
+            # Write this method into the class. 
+            setattr(OpaqueWrapper,magicname,attrfunc(magicname))
+            pass
+        pass
+
+    OpaqueWrapper_dict[boolean_map] = OpaqueWrapper
+
+    return OpaqueWrapper(originating_context, wrappedobj)
+
