@@ -22,7 +22,7 @@ from .context import InitThread,InitFreeThread,InitCompatibleThread
 from .context import InitContext,InitThreadContext
 from .context import PushThreadContext,PopThreadContext
 from .context import CurContext,InContext,SimpleContext
-from .context import RunUnprotected,RunInContext
+from .context import RunUnprotected,RunInContext, UnprotectedContext
 from .OpaqueWrapper import OpaqueWrapper,forceunwrap
 from dataguzzler_python.configfile_utils import scan_source
 from dataguzzler_python.configfile_utils import modify_source_overriding_parameters
