@@ -14,14 +14,14 @@ into the same environment.
 
 
 On Anaconda you will probably want at least the following packages:
-numpy scipy matplotlib cython ipython pip opencv pint lxml setuptools pyreadline pyserial pyside2 pyvisa. If you considering installing SpatialNDE2, you will also want: 
+numpy scipy matplotlib cython ipython pip opencv pint lxml setuptools pyreadline pyserial pyside2 pyvisa git. If you considering installing SpatialNDE2, you will also want: 
 clhpp pyopencl  hdf5 h5py  netcdf4 cmake openscenegraph pyopengl glfw freeglut glew mesa eigen swig.
 
 To create a new Anaconda environment with all these packages, run, for example:
 
 ::
    
-   conda create -n SNDE -c conda-forge python=3.9 numpy scipy matplotlib cython ipython pip opencv clhpp pyopencl pint hdf5 h5py lxml setuptools netcdf4 cmake openscenegraph pyopengl glfw freeglut glew mesa eigen swig pyreadline pyserial pyside2 hdf5 pyvisa
+   conda create -n SNDE -c conda-forge python=3.9 numpy scipy matplotlib cython ipython pip opencv clhpp pyopencl pint hdf5 h5py lxml setuptools netcdf4 cmake openscenegraph pyopengl glfw freeglut glew mesa eigen swig pyreadline pyserial pyside2 hdf5 pyvisa git
 
 You can then activate the Anaconda environment with:
 
@@ -36,7 +36,7 @@ Installation of Dataguzzler-Python is accomplished by running
 
 ::
 
-   python setup.py install
+   pip install --no-deps .
 
 from a suitable terminal, command prompt, or Anaconda prompt corresponding
 to the desired installation enviroment.  In

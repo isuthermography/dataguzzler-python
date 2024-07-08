@@ -12,6 +12,8 @@ For basic information see: doc/source/about.rst
 For installation instructions see: doc/source/installation.rst
 For a quickstart guide see: doc/source/quickstart.rst
 
+Basic installation is "pip install --no-deps ."
+
 More detailed documentation is also available in doc/source/
 
 To render the documentation use a command prompt, change to the
