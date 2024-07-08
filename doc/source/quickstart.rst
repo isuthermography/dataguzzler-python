@@ -269,7 +269,7 @@ arrays, so if we want to access data arrays we usually need to access the
 recording data array reference ("recording ref") corresponding to the
 recording: ::
 
-   dgpy> r = g.get_recording_ref("/ss_greensinversion")
+   dgpy> r = g.get_ndarray_ref("/ss_greensinversion")
    200 000000000139 <spatialnde2.ndarray_recording_ref; proxy of <Swig Object of type 'std::shared_ptr< snde::ndarray_recording_ref > *' at 0x7f44c592e540> >
    dgpy>
    
@@ -432,10 +432,10 @@ arrays in memory so you can inspect them at your leisure.
 
 Given a global revision object stored in the variable ``globalrev``,
 you can list the recordings in a global revision with
-``globalrev.list_recordings()`` or the available array recording
-references with ``globalrev.list_recording_refs()``. Likewise you can
-obtain a recording or an array reference with
-``globalrev.get_recording()`` or ``globalrev.get_recording_ref()``
+``globalrev.list_recordings()`` or the available n-dimensional array recording
+references with ``globalrev.list_ndarray_refs()``. Likewise you can
+obtain a recording or an n-dimensional array reference with
+``globalrev.get_recording()`` or ``globalrev.get_ndarray_ref()``
 respectively. You can get an array reference from a recording
 with the ``.reference_ndarray()`` method of the recording.
 
@@ -447,7 +447,7 @@ details by converting it to a string, e.g.::
    str(rec.metadata)
 
 
-SpatialNDE2 metadata always immutable once the array is complete. With rare exceptions,
+SpatialNDE2 metadata is always immutable once the array is complete. With rare exceptions,
 SpatialNDE2 array data is supposed to be immutable once the array is complete
 ready so the return from ``.data()`` should be considered read-only.
 

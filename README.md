@@ -12,7 +12,9 @@ For basic information see: doc/source/about.rst
 For installation instructions see: doc/source/installation.rst
 For a quickstart guide see: doc/source/quickstart.rst
 
-Basic installation is "pip install --no-deps ."
+Basic requirements are Python v3.8 or above with the following packages: numpy, setuptools, wheel
+
+Basic installation is "pip install --no-deps --no-build-isolation ."
 
 More detailed documentation is also available in doc/source/
 

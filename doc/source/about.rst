@@ -103,6 +103,8 @@ Prerequisite dependencies
 Dataguzzler-Python is built on Python (tested on 3.8 and newer) on the following common and widely-used tools
 and libraries:
 
+  * setuptools: Python packaging support
+  * wheel: Python packaging support
   * numpy: Python numerical toolkit
   * pint: Python units library
   * PySide2 QT bindings (optional): GUI Python integration

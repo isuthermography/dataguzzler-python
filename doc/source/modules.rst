@@ -515,7 +515,7 @@ to an equivalent C++ shared pointer and then to a templated ``ndtyped_recording_
 
 Given variables from the SpatialNDE2 Python wrappers::
    g = recdb.latest_globalrev()
-   waveform = g.get_recording_ref("waveform")
+   waveform = g.get_ndarray_ref("waveform")
 
 Cython ``cdef`` C++ shared pointers can be obtained as follows using the produce/consume methods of the SpatialNDE2 Python wrappers::
 
