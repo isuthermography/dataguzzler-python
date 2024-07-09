@@ -4,6 +4,7 @@ import numbers
 import re
 import threading
 import random
+import atexit
 import numpy as np
 import pint
 from dataguzzler_python import dgpy
@@ -265,7 +266,7 @@ class axis(object):
               # factor relative to deg. (float)
     configured=None # boolean, set once axis is fully configured
     #enabled=None # boolean, is drive turned on
-    targetpos=None # target position (float)
+    _targetpos=None # target position (float)
     parent=None # acr9000 object
     
     def __init__(self,**kwargs):
@@ -398,12 +399,12 @@ class axis(object):
                 raise ValueError("Axis is not enabled")
             
             actpos=self.parent._GetPReg(actualpos[self.axis_num])/self.ppu
-            self.targetpos=raw_value + actpos
+            self._targetpos=raw_value + actpos
             
             self.parent._control_socket.write(f"PROG{self.proglevel:d}\r".encode("utf-8"))
             self.parent._control_socket.read_until(expected=b'>')
 
-            self.parent._control_socket.write(f"{self.axis_name:s}{self.targetpos:.10g}\r".encode("utf-8"))
+            self.parent._control_socket.write(f"{self.axis_name:s}{self._targetpos:.10g}\r".encode("utf-8"))
             self.parent._control_socket.read_until(expected=b'>')
             pass
         finally:
@@ -457,12 +458,12 @@ class axis(object):
                 raise ValueError("Axis is not enabled")
             
             #actpos=self.parent._GetPReg(actualpos[self.axis_num])/self.ppu
-            self.targetpos=raw_value
+            self._targetpos=raw_value
             
             self.parent._control_socket.write(f"PROG{self.proglevel:d}\r".encode("utf-8"))
             self.parent._control_socket.read_until(expected=b'>')
 
-            self.parent._control_socket.write(f"{self.axis_name:s}{self.targetpos:.10g}\r".encode("utf-8"))
+            self.parent._control_socket.write(f"{self.axis_name:s}{self._targetpos:.10g}\r".encode("utf-8"))
             self.parent._control_socket.read_until(expected=b'>')
             pass
         finally:
@@ -531,6 +532,7 @@ class acr9000(metaclass=Module):
     _wait_status=None # either "Cancelled" (between WaitCancel() and
                      # WaitRestart())
                      # or "Waiting" (BASIC wait program running on ACR)
+    _wait_exit=None  # set to True to trigger the wait thread to exit
     all=None # axis_group object representing all axes
     
     def __init__(self,module_name,pyserial_url,**axis_units):
@@ -540,15 +542,33 @@ class acr9000(metaclass=Module):
         self._spareprog=15
         self.axisdict=collections.OrderedDict()
         self._wait_status="Cancelled"
+        self._wait_exit=False
         #_configure_socket(comm1)
-        _set_timeout(self._control_socket,50) #Set timeout to 50ms
+        _set_timeout(self._control_socket,500) #Set timeout to 500ms
+        self._control_socket.write(b"SYS\r") # Change to system mode
         gotbuf="Startup"
+        total_gotbuf=b""
         while len(gotbuf) > 0:
             gotbuf=self._control_socket.read_until(expected=b">")
+            total_gotbuf += gotbuf
+            pass
+
+        if b"SYS" not in total_gotbuf:
+            # Not responding... send escape key
+            self._control_socket.write(b"\x1b\r") # Change to system mode
+            self._control_socket.write(b"SYS\r") # Change to system mode
+            gotbuf="Startup"
+            total_gotbuf=b""
+            while len(gotbuf) > 0:
+                gotbuf=self._control_socket.read_until(expected=b">")
+                total_gotbuf += gotbuf
+                pass
             pass
         _set_timeout(self._control_socket,STARTUPTIMEOUT)
         self._control_socket.write(b"SYS\r") # Change to system mode
         response=self._control_socket.read_until(expected=b'>')
+        #import pdb
+        #pdb.set_trace()
         assert(response.endswith(b"SYS>"))
 
         self._control_socket.write(b"HALT ALL\r") # stop all axes
@@ -698,8 +718,20 @@ class acr9000(metaclass=Module):
             self._waiter_thread.start()
             self._waiter_ack_cond.wait()
             pass
+        #atexit.register(self.atexit) # Register an atexit function so that we can cleanly trigger our subthread to end. Otherwise we might well crash on exit.
         self._restart_wait()
         pass
+
+    #def atexit(self):
+    #    #print("acr9000: Performing atexit()")
+    #    with self._waiter_cond:
+    #        self._waiter_exit = True;
+    #        self._waiter_cond.notify()
+    #        pass
+    #
+    #    self._waiter_thread.join()
+    #    
+    #    pass
 
     def waitall(self):
         waitlist = list(self._wait_dict.keys())
@@ -770,7 +802,7 @@ class acr9000(metaclass=Module):
 
         while True:
             with self._waiter_cond:
-                if self._wait_status=='Cancelled':
+                if self._wait_status=='Cancelled' and not self._wait_exit:
                     self._waiter_ack_cond.notify()
                     self._waiter_cond.wait()
                     pass
@@ -778,15 +810,27 @@ class acr9000(metaclass=Module):
                     pass
                 self._waiter_ack_cond.notify()
                 wait_status=self._wait_status
+
+                if self._wait_exit: # not actually used
+                    if self._wait_status == 'Waiting':
+                        self._wait_status = 'Cancelled'
+                        #Press the escape key
+                        self._control_socket.write(b'\x1b')
+                        self._control_socket.read_until(expected=b'>')
+                        self._control_socket.write(b'HALT\r')
+                        self._control_socket.read_until(expected=b'>') #Wait for prompt
+                        pass
+                    return # waiter thread exit
                 pass
             while wait_status=='Waiting':
                 #response=self._read()
                 response=self._control_socket.read_until(expected=b'>') 
                 if response is not None:
                     efpos=response.find(b'EXITFLAG')
-                    if efpos >= 0:
+                    if efpos >= 0 and efpos < len(response):
                         efmatch=re.match(rb'EXITFLAG=(\d+)',response[efpos:])
                         assert(efmatch is not None)
+                        efpos += len(efmatch.group(0))
                         linenum=int(efmatch.group(1))
                         with self._waiter_cond:
                             if linenum in self._wait_dict:
@@ -796,12 +840,14 @@ class acr9000(metaclass=Module):
                                 pass
                             pass
                         
+                        
+                        pass
+                    #else:
+                    #    #A different string: must be a prompt
+                    #    #OK to check wait status, as we must have pressed escape
+                    #    pass
+                    if efpos >= 0:
                         continue #Bypass check of wait status until we have something that is not an EXITFLAG. 
-                        pass
-                    else:
-                        #A different string: must be a prompt
-                        #OK to check wait status, as we must have pressed escape
-                        pass
                     pass
                 with self._waiter_cond:
                     wait_status=self._wait_status
@@ -828,8 +874,8 @@ class acr9000(metaclass=Module):
                     pass
                     
                 assert(linenum not in self._wait_dict)
-                self._wait_cond = threading.Condition(lock=self._waiter_cond)
-                self._wait_dict[linenum] = self._wait_cond
+                _wait_cond = threading.Condition(lock=self._waiter_cond)
+                self._wait_dict[linenum] = _wait_cond
                 pass
             
             self._control_socket.write(f'PROG{self._spareprog:d}\r'.encode("utf-8"))
@@ -843,11 +889,24 @@ class acr9000(metaclass=Module):
         finally:
             self._restart_wait()
             pass
-        with self._wait_cond:
-            self._wait_cond.wait()
-            pass 
+        with dgpy.UnprotectedContext:
+            with _wait_cond:
+                _wait_cond.wait()
+                pass
+            pass
+        # Need to erase the line of code (wait thread removed us from wait dict)
+        self._abort_wait()
+        try:
+            self._control_socket.write(f"PROG{self._spareprog:d}\r".encode("utf-8"))
+            self._control_socket.read_until(expected=b'>') #"P00>"
+            self._control_socket.write(f"{linenum:d}\r".encode("utf-8")) # just the line number alone deletes the line
+            self._control_socket.read_until(expected=b'>') #"P00>"
+            pass
+        finally:
+            self._restart_wait()
+            pass
         pass
-
+    
     def _restart_wait(self):
         assert(self._wait_status == 'Cancelled')
         # go to our spare program level
