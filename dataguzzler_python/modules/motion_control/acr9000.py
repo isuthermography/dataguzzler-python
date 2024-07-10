@@ -186,7 +186,10 @@ class axis_group:
         for axis_num in range(len(self.axis_names)):
             axis_name = self.axis_names[axis_num]
             axis = getattr(self.parent, axis_name)
-            axis.rel=value[axis_num]
+            desired_rel = value[axis_num]
+            if desired_rel is not None and not np.isnan(desired_rel):
+                axis.rel=desired_rel
+                pass
             pass
         pass
 
@@ -222,19 +225,23 @@ class axis_group:
         for axis_num in range(len(self.axis_names)):
             axis_name = self.axis_names[axis_num]
             axis = getattr(self.parent, axis_name)
-            axis.pos = value[axis_num]
+            desired_pos = value[axis_num]
+            if desired_pos is not None and not np.isnan(desired_pos):
+                
+                axis.pos = desired_pos
+                pass
             pass
         pass
 
     @property
     def enabled(self):
-        pos = np.zeros(len(self.axis_names), dtype=bool)
+        enabled = np.zeros(len(self.axis_names), dtype=bool)
         for axis_num in range(len(self.axis_names)):
             axis_name = self.axis_names[axis_num]
             axis = getattr(self.parent, axis_name)
-            pos[axis_num] = axis.pos
+            enabled[axis_num] = axis.enabled
             pass
-        return pos
+        return enabled
 
     @enabled.setter
     def enabled(self, value):
