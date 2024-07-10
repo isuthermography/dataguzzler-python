@@ -14,7 +14,8 @@ For a quickstart guide see: doc/source/quickstart.rst
 
 Basic requirements are Python v3.8 or above with the following packages: numpy, setuptools, wheel
 
-Basic installation is "pip install --no-deps --no-build-isolation ."
+Basic installation is (possibly as root or Administrator):
+    pip install --no-deps --no-build-isolation .
 
 More detailed documentation is also available in doc/source/
 

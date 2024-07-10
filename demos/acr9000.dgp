@@ -5,4 +5,4 @@ include(dgpy,"dgpy_startup.dpi") # If you get a NameError here, be sure you are 
 include(dgpy, "pint.dpi")
 
 from dataguzzler_python.modules.motion_control import acr9000
-mot = acr9000.acr9000("mot","socket://acr9000:5002?logging=debug",X="mm",Y="mm",Z="mm",RY="degrees")
+mot = acr9000.ACR9000("mot","socket://acr9000:5002",X="mm",Y="mm",Z="mm",RY="degrees")
