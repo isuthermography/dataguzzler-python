@@ -1,3 +1,11 @@
+[project]
+name = 'dataguzzler-python'
+dynamic = ['version']
+requires-python = ">= 3.8"
+
+[project.scripts]
+dataguzzler-python = "dataguzzler_python.bin.dataguzzler_python:main"
+
 [build-system]
 requires = ["setuptools","numpy"]
 build-backend = "setuptools.build_meta:__legacy__"
