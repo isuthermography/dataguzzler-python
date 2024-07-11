@@ -1,7 +1,12 @@
 [project]
 name = 'dataguzzler-python'
-dynamic = ['version']
+dynamic = ['version','authors','description','urls']
 requires-python = ">= 3.8"
+readme = "README.md"
+classifiers = [
+	    "Development Status :: 3 - Alpha",
+	    "License :: OSI Approved :: BSD License"
+	    ]
 
 [project.scripts]
 dataguzzler-python = "dataguzzler_python.bin.dataguzzler_python:main"
