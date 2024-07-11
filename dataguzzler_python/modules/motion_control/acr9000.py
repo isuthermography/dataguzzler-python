@@ -520,7 +520,7 @@ class ACR9000(MotionControllerBase,metaclass=Module):
                             axis_name = attach_match.group(2).decode("utf-8")
                             if axis_num < MAXAXES and len(axis_name) > 0:
                                 #Got valid attach line
-                                unit_factor = Axis._units_to_factor(axis_units[axis_name])
+                                unit_factor = ACR9000Axis._units_to_factor(axis_units[axis_name])
                                 #Extract the PPU
                                 self._control_socket.write(f'AXIS{axis_num:d} PPU\r'.encode("utf-8"))
                                 ppu_response=self._control_socket.read_until(expected=b'>')
@@ -528,7 +528,7 @@ class ACR9000(MotionControllerBase,metaclass=Module):
                                 if ppu_match is None:
                                     raise ValueError(f'Bad PPU line for axis {axis_name:s}')
                                 ppu = float(ppu_match.group(1))
-                                axis = Axis(axis_name=axis_name,
+                                axis = ACR9000Axis(axis_name=axis_name,
                                             _proglevel=proglevel,
                                             _axis_num=axis_num,
                                             _ppu=ppu,

@@ -1,3 +1,6 @@
+import numpy as np
+import pint 
+
 class AxisBase:
     """Base class for a motion controller axis providing attributes
     and properties and methods you should override"""
