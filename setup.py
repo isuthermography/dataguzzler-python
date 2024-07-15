@@ -14,7 +14,7 @@ import shutil
 import subprocess
 import glob
 from setuptools.command.install import install
-from distutils.command.build import build
+from setuptools.command.build import build
 
 class InstallCommand(install):
     user_options = install.user_options + [
@@ -38,6 +38,7 @@ class BuildCommand(build):
         pass
     pass
 
+r"""
 
 # Extract GIT version (use subprocess.call(['git','rev-parse']) to check if we are inside a git repo
 if distutils.spawn.find_executable("git") is not None and subprocess.call(['git','rev-parse'],stderr=subprocess.DEVNULL)==0:
@@ -46,7 +47,7 @@ if distutils.spawn.find_executable("git") is not None and subprocess.call(['git'
     
     gitrev = subprocess.check_output(["git","rev-parse","HEAD"]).decode('utf-8').strip()
 
-    version = "0.0+git-%s" % (gitrev)
+    version = "0.0+git.%s" % (gitrev)
 
     # See if we can get a more meaningful description from "git describe"
     try:
@@ -54,7 +55,9 @@ if distutils.spawn.find_executable("git") is not None and subprocess.call(['git'
         # versionraw is like v0.1.0-50-g434343
         # for compatibility with PEP 440, change it to
         # something like 0.1.0+50.g434343
-        matchobj=re.match(r"""v([^.]+[.][^.]+[.][^-.]+)(-.*)?""",versionraw)
+"""
+   #     matchobj=re.match(r"""v([^.]+[.][^.]+[.][^-.]+)(-.*)?""",versionraw)
+r"""
         version=matchobj.group(1)
         if matchobj.group(2) is not None:
             version += '+'+matchobj.group(2)[1:].replace("-",".")
@@ -72,11 +75,11 @@ if distutils.spawn.find_executable("git") is not None and subprocess.call(['git'
         pass
     pass
 else:
-    version = "0.0+UNKNOWN"
+    version = "0.0+unknown"
     pass
 
 print("version = %s" % (version))
-
+"""
 
 ext_modules = []
 package_data = {
@@ -124,7 +127,7 @@ if sys.version_info < (3,6,0):
 setup(name="dataguzzler_python",
       description="dataguzzler-python",
       author="Stephen D. Holland",
-      version=version,
+      #version=version,
       url="http://thermal.cnde.iastate.edu",
       ext_modules=ext_modules,
       zip_safe=False,
