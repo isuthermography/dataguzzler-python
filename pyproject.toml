@@ -12,5 +12,8 @@ classifiers = [
 dataguzzler-python = "dataguzzler_python.bin.dataguzzler_python:main"
 
 [build-system]
-requires = ["setuptools","numpy"]
+requires = ["setuptools>=64","numpy", "setuptools_scm[toml]>=5"]
 build-backend = "setuptools.build_meta:__legacy__"
+
+[tool.setuptools_scm]
+version_file = "dataguzzler_python/_version.py"
