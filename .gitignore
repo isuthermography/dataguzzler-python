@@ -5,3 +5,4 @@ build
 dist
 dataguzzler_python.egg-info
 .vscode
+_version.py

@@ -12,7 +12,7 @@ For basic information see: doc/source/about.rst
 For installation instructions see: doc/source/installation.rst
 For a quickstart guide see: doc/source/quickstart.rst
 
-Basic requirements are Python v3.8 or above with the following packages: numpy, setuptools, wheel
+Basic requirements are Python v3.8 or above with the following packages: numpy, setuptools, wheel, build, setuptools_scm
 
 Basic installation is (possibly as root or Administrator):
     pip install --no-deps --no-build-isolation .

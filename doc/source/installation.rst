@@ -14,7 +14,7 @@ into the same environment.
 
 
 On Anaconda you will probably want at least the following packages:
-numpy scipy matplotlib cython ipython pip opencv pint lxml setuptools pyreadline pyserial pyside2 pyvisa git wheel. If you considering installing SpatialNDE2, you will also want: 
+numpy scipy matplotlib cython ipython pip opencv pint lxml setuptools pyreadline pyserial pyside2 pyvisa git wheel build setuptools_scm. If you considering installing SpatialNDE2, you will also want: 
 clhpp pyopencl  hdf5 h5py  netcdf4 cmake openscenegraph pyopengl glfw freeglut glew mesa eigen swig.
 
 To create a new Anaconda environment with all these packages, run, for example:
