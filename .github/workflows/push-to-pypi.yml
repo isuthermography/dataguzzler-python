@@ -6,7 +6,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - name: perform checkout
+      uses: actions/checkout@v4
     - name: Get history and tags for SCM versioning to work
       run: 
         git fetch --prune --unshallow
