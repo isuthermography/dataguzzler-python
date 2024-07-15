@@ -420,7 +420,7 @@ class ACR9000Axis(AxisBase):
         try:
             if enabled:
                 # issue ctrl-y to clear all kill-all-motion-request (KAMR) flags
-                self.parent._control_socket.write(f"PROG{self._proglevel:d}\r".encode("utf-8"))
+                self.parent._control_socket.write(b"\x19\r")
                 self.parent._control_socket.read_until(expected=b'>')
                 pass
             self.parent._control_socket.write(f"PROG{self._proglevel:d}\r".encode("utf-8"))
