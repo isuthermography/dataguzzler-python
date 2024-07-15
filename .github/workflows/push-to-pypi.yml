@@ -9,7 +9,7 @@ jobs:
     - name: perform checkout
       uses: actions/checkout@v4
     - name: Get history and tags for SCM versioning to work
-      run: 
+      run: |
         git fetch --prune --unshallow
         git fetch --depth=1 origin +refs/tags/*:refs/tags/*
 	
