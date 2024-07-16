@@ -1,4 +1,11 @@
 name: Publish Python distribution to PyPI
+# This runs on the public repository after:
+#  1. Pull request from master into cleared in staging repository
+#  2. Pull request appropriately approved
+#  3. Tagging of the merged revision in cleared with the appropriate
+#     version tag
+#  4. Run Push-Tags-To-Public on staging repository
+#  5. Run Build distribution on public repository
 on: workflow_dispatch
 jobs:
   build:
