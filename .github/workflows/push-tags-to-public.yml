@@ -1,11 +1,8 @@
-name: Push-To-Public
+name: Push-Tags-To-Public
 on:
-  pull_request:
-    types: ['closed']
-    branches: ['cleared']
+  workflow_dispatch:
 jobs:
-  Push-To-Public:
-    if: github.event.pull_request.merged == true
+  Push-Tags-To-Public:
     runs-on: ubuntu-latest
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
@@ -28,6 +25,5 @@ jobs:
           git config --global user.name "AutoPush"
           git remote add public git@github.com:isuthermography/dataguzzler-python.git
           git fetch --unshallow origin
-          git push public cleared:master
           git push public --tags
 
