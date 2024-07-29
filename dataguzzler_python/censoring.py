@@ -13,6 +13,7 @@ from .dgpy import get_pint_util_SharedRegistryObject
 
 from .dgpy import Module
 from .dgpy import threadsafe
+from .dgpy import wrapdescriptor
 from .context import CurContext,RunInContext
 from .remoteproxy import remoteproxy
 from .OpaqueWrapper import OpaqueWrapper,attemptunwrap
