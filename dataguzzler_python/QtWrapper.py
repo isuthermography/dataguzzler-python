@@ -112,7 +112,7 @@ def QtWrapDescriptor(towrap):
         pass
     return descriptor_wrapper(doc)
 
-def qt5unwrap(wrapperobj):
+def qtunwrap(wrapperobj):
     return object.__getattribute__(wrapperobj,"_wrappedobj")
 
 
@@ -142,9 +142,9 @@ def QtCensorObj(sourcecontext,destcontext,attrname,obj):
         return attemptunwrap(obj,destcontext)
 
     if objclass is QtWrapper:
-        # pre-wrapped qt5 object
+        # pre-wrapped qt object
         if destcontext is main_thread_context:
-            return qt5unwrap(obj)
+            return qtunwrap(obj)
         else:
             # already wrapped
             return obj
