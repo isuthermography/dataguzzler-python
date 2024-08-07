@@ -344,7 +344,7 @@ class threadsafe(object,metaclass=abc.ABCMeta):
 
 # include() function for config files and modules
 
-def include(includepackage,includeurl=None,**kwargs):
+def include(includepackage,includeurl,*args,**kwargs):
     """Include a sub-config file as if it were 
         inserted in your main config file. 
             
@@ -390,12 +390,22 @@ def include(includepackage,includeurl=None,**kwargs):
     includefh.close()
     #code = compile(includestr,includepath,'exec')
 
-    (includeast,globalparams,assignable_param_types) = scan_source(includepath,includetext)
+    (includeast,globalparams,assignable_param_types,dpi_args,dpi_kwargs) = scan_source(includepath,includetext)
     code = modify_source_overriding_parameters(includepath,includeast,kwargs,mode="all")
 
     localkwargs = { varname: kwargs[varname] for varname in kwargs if varname not in globalparams }
     globalkwargs = { varname: kwargs[varname] for varname in kwargs if varname in globalparams }
 
+    if dpi_args:
+        localkwargs["dpi_args"]=args
+        pass
+    elif len(args) > 0:
+        raise ValueError(f"Positional parameters provided to a .dpi file {includepath:s} that does not take dpi_args")
+    
+    if dpi_kwargs:
+        localkwargs["dpi_kwargs"]=kwargs
+        pass
+    
     function_code = modify_source_into_function_call(code,localkwargs)
 
 
@@ -407,9 +417,21 @@ def include(includepackage,includeurl=None,**kwargs):
             
     localvars.update(localkwargs)  # include any explicitly passed local parameters 
 
+    if dpi_args:
+        localvars["dpi_args"]=args
+        pass
+    elif len(args) > 0:
+        raise ValueError(f"Positional parameters provided to a .dpi file {includepath:s} that does not take dpi_args")
+    
+    if dpi_kwargs:
+        localvars["dpi_kwargs"]=kwargs
+        pass
+    
     # update global dictionary according to explicitly passed global parameters
     module.__dict__.update(globalkwargs)
 
+   
+    
     # Run the include file code
     exec(exec_code,module.__dict__,localvars)
             

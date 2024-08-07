@@ -59,7 +59,7 @@ The ``pint.dpi`` include file imports the ``pint`` units library, defines a unit
 
 These two lines import Dataguzzler-Python module classes from files
 located in the same directory as ``shutter_demo.dgp``. The location
-of the current ``.dgp`` or ``.dgi`` file is always at the head of
+of the current ``.dgp`` or ``.dpi`` file is always at the head of
 ``sys.path`` while it is being processed.::
 
   dgpython_release_main_thread() # From here on, the .dgp executes in a sub thread 
@@ -114,15 +114,26 @@ Abstracting Functionality Into Include Files
 A common development pattern for Dataguzzler-Python is to
 first implement a capability directly in a ``.dgp`` file.
 Then, once the capability is mature, move the guts into a more abstract
-implementation in a ``.dgi`` file that can be included by the
+implementation in a ``.dpi`` file that can be included by the
 ``.dgp``. This way functionality from multiple devices can be
-aggregated simply by including all of the relevant ``.dgi`` files.
+aggregated simply by including all of the relevant ``.dpi`` files.
 A hybrid virtual instrument can then be created by adding glue into
 the ``.dgp`` that merges the functionality of multiple devices into one,
 for example setting parameters in synchrony, including the data from
 one device as metadata within data from another device, etc. Then once
 the virtual hybrid instrument is mature it can be abstracted into its own
-``.dgi`` file and used to build an even higher level device.
+``.dpi`` file and used to build an even higher level device.
+
+Parameters can be passed into included ``.dpi`` files by two methods:
+First by a simple assignment of a default value in the ``.dpi`` file
+with an override provided by keyword parameters to the ``include()``
+call. An alternative is to assign ``dpi_args=None`` and/or ``dpi_kwargs=None`` in the ``.dpi`` file. When the file is included, extra
+ordered arguments will be passed in as ``dpi_args`` and extra
+keyword arguments will be passed in as a dictionary ``dpi_kwargs``.
+
+Included ``.dpi`` files can also return a value. The file can end
+with a ``return`` statement and the value supplied will be the
+value of the ``include()`` function call.
 
 Dynamic Metadata
 ----------------
