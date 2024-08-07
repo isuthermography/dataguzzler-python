@@ -2,8 +2,11 @@
 both PySide2 and PyQt5, plus easy extensibility to PySide6 and PyQt6 """
 
 import sys
+import os
+import os.path
 import importlib
 import threading
+import pkgutil
 
 from dataguzzler_python import QtConfig
 from dataguzzler_python import context
@@ -23,33 +26,75 @@ def Import_SubModule(qtmodname):
     return module
 
 
+# Check if SpatialNDE2 is built for Qt5 versus Qt6
+spatialnde2_loader = pkgutil.get_loader("spatialnde2")
+spatialnde2_qt_version=None
+if spatialnde2_loader is not None:
+    spatialnde2_path = spatialnde2_loader.get_filename()
+    spatialnde2_dirpath = os.path.dirname(spatialnde2_path)
+    compile_definitions_path = os.path.join(spatialnde2_dirpath, "compile_definitions.txt")
+    with open(compile_definitions_path, "r") as fh:
+        compile_definitions_str = fh.read()
+        pass
+    _spatialnde2_qt6_enabled = "-DSNDE_ENABLE_QT6=1" in compile_definitions_str
+    if _spatialnde2_qt6_enabled:
+        spatialnde2_qt_version="6"
+        pass
+    else:
+        spatialnde2_qt_version="5"
+        pass
+    pass
+
         
 
 
-pyside_loaded = "PySide2" in sys.modules
-pyqt_loaded = "PyQt5" in sys.modules
+pyside2_loaded = "PySide2" in sys.modules
+pyside6_loaded = "PySide6" in sys.modules
+pyqt5_loaded = "PyQt5" in sys.modules
+pyqt6_loaded = "PyQt6" in sys.modules
 
 selected_bindings = None
 
-if not(pyside_loaded ^ pyqt_loaded) and QtConfig.prefer_pyqt:
-    selected_bindings = "PyQt5"
-    pass
-elif not(pyside_loaded ^ pyqt_loaded):
-    selected_bindings = "PySide2"
-    pass
-else:
-    if pyside_loaded:
-        selected_bindings = "PySide2"
+if not(pyside2_loaded or pyside6_loaded or pyqt5_loaded or pyqt6_loaded) and QtConfig.prefer_pyqt:
+    if spatialnde2_qt_version=="6":
+        selected_bindings="PyQt6"
         pass
     else:
         selected_bindings = "PyQt5"
         pass
     pass
+elif not(pyside2_loaded or pyside6_loaded or pyqt5_loaded or pyqt6_loaded):
+    selected_bindings = "PySide2"
+    if spatialnde2_qt_version=="6":
+        selected_bindings = "PySide6"
+        pass    
+    pass
+else:
+    if pyside2_loaded:
+        selected_bindings = "PySide2"
+        pass
+    elif pyside6_loaded:
+        selected_bindings = "PySide6"
+        pass
+    elif pyqt5_loaded:
+        selected_bindings = "PyQt5"
+        pass
+    elif pyqt6_loaded:
+        selected_bindings = "PyQt6"
+        pass
+    else:
+        selected_bindings = "PySide2"
+        pass
+    pass
+
+if selected_bindings is None:
+    raise ImportError(f"No suitable Qt Python bindings found; suggest installing PySide2 or PySide6 depending on the version of Qt that your SpatialNDE2 uses.")
 
 if threading.current_thread() is not threading.main_thread():
     raise RuntimeError("Qt may only be imported from main thread")
 
 Qt = None
+
 
 try: 
     Qt = importlib.import_module(selected_bindings)
@@ -59,8 +104,14 @@ except ImportError as origexcept:
     if selected_bindings == "PySide2":
         alternative_bindings = "PyQt5"
         pass
-    else:
+    elif selected_bindings == "PyQt5":
         alternative_bindings = "PySide2"
+        pass
+    elif selected_bindings == "PySide6":
+        alternative_bindings = "PyQt6"
+        pass
+    elif selected_bindings == "PyQt6":
+        alternative_bindings = "PySide6"
         pass
     try:
         Qt = importlib.import_module(alternative_bindings)
@@ -78,7 +129,7 @@ Import_SubModule("QtCore")
 Import_SubModule("QtWidgets")
 Import_SubModule("QtGui")
 
-if selected_bindings=="PyQt5":
+if selected_bindings=="PyQt5" or selected_bindings == "PyQt6":
     QtSlot = QtCore.pyqtSlot
     QtSignal = QtCore.pyqtSignal
     pass

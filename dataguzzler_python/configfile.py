@@ -95,7 +95,9 @@ class DGPyConfigFileLoader(importlib.machinery.SourceFileLoader):
         self.parentmodule=parentmodule
 
         
-        (self.sourceast,self.globalparams,self.assignable_param_types) = scan_source(self.path,self.sourcetext)
+        (self.sourceast,self.globalparams,self.assignable_param_types,dpi_args,dpi_kwargs) = scan_source(self.path,self.sourcetext)
+        if dpi_args or dpi_kwargs:
+            raise ValueError("dpi_args and dpi_kwargs not supported in .dgp files")
         
         pass
 

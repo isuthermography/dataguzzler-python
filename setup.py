@@ -14,7 +14,12 @@ import shutil
 import subprocess
 import glob
 from setuptools.command.install import install
-from setuptools.command.build import build
+try:
+    from setuptools.command.build import build
+    pass
+except ModuleNotFoundError:
+    from distutils.command.build import build
+    pass
 
 class InstallCommand(install):
     user_options = install.user_options + [
