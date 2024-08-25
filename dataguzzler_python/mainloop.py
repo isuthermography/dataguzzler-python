@@ -114,7 +114,10 @@ def console_input_processor(dgpy_config,contextname,localvars,rlcompleter):
                 return
                 pass
             except KeyboardInterrupt:
-                continue
+                # Return as though they typed an empty string -- seems like the
+                # most sensible option here -- helps to clear out line
+                InStr=""
+                pass
             finally:
                 PushThreadContext(InputContext)
                 pass
