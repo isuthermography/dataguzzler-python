@@ -1,0 +1,72 @@
+from dataguzzler_python import dgpy
+
+include(dgpy,"dgpy_startup.dpi") # If you get a NameError here, be sure you are executing this file with dataguzzler-python
+
+include(dgpy, "pint.dpi")
+
+from dataguzzler_python.modules.motion_control import compumotor6k
+
+# to connect over ethernet to a CM6k, you need to connect on
+# port 5002. If the controller thinks it is already connected
+# then it will refuse connections
+
+# in addition, you probably need to have the ethernet port it is
+# connected to hardwired to 10Mbps half duplex and you probably
+# need to manually add an arp entry for the device.
+# On linux, e.g. sudo arp -s 172.16.1.1 00:90:55:00:df:dc
+# On windows, e.g.
+#       netsh -c "interface ipv4"
+#       set neighbors "Local Area Connection" "172.16.1.1" "00-90-55-00-48-98"
+# test the connection with ping:
+#       ping 172.16.1.1
+# test the connection with telnet:
+#       telnet
+#       open 172.16.1.1 5002
+
+
+
+pyserial_url='socket://172.16.1.1:5002'
+
+mot = compumotor6k.CM6k("mot",pyserial_url,8,[
+    {
+        "name":"X",
+        "ppu":-2500,
+        "units":"mm",
+        "number":1,
+        "accel":100,
+        "vel":10,
+        "LH":0,
+        "LS":0
+    },
+    {
+        "name":"Y",
+        "ppu":-2500,
+        "units":"mm",
+        "number":2,
+        "accel":100,
+        "vel":10,
+        "LH":0,
+        "LS":0
+    },
+    {
+        "name":"Z",
+        "ppu":+2500,
+        "units":"mm",
+        "number":3,
+        "accel":100,
+        "vel":10,
+        "LH":0,
+        "LS":0
+    },
+    {
+        "name":"R",
+        "ppu":+6250,
+        "units":"deg",
+        "number":4,
+        "accel":50,
+        "vel":5,
+        "LH":0,
+        "LS":0
+    },
+    ])
+                        
