@@ -1,4 +1,5 @@
 import sys
+import time
 from threading import Thread
 
 from dataguzzler_python.dgpy import Module as dgpy_Module
@@ -56,6 +57,8 @@ class DummyData(object, metaclass=dgpy_Module):
             rec.allocate_storage(self.shape, False)
             rec.data()[:] = np.sin(np.linspace(0, 10*np.pi, self.len)).reshape(self.shape) + np.random.normal(0,0.01,self.len).reshape(self.shape)
             rec.rec.mark_data_ready()
+            globalrev.wait_complete()
+            time.sleep(0.01)
             pass
 
     def StartAcquisition(self):
