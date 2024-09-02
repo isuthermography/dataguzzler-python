@@ -441,3 +441,6 @@ def include(includepackage,includeurl,*args,**kwargs):
     module.__dict__["_contextstack"].pop()
 
     return localvars["__dgpy_config_ret"]
+
+# Alias for Cython because "include" is a reserved word.
+dgpy_include=include
