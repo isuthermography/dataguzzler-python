@@ -84,6 +84,9 @@ def censorobj(sourcecontext,destcontext,attrname,obj):
     if isinstance(obj,str):
         return str(obj)
 
+    if isinstance(obj,bytes):
+        return bytes(obj)
+
     if obj is type or obj is None:
         return obj # never need to wrap "type" or None
 
