@@ -101,9 +101,15 @@ def ipython_input_processor(dgpy_config,contextname,localvars):
     InitContext(InputContext,contextname) # Allow to run stuff from main thread
     PushThreadContext(InputContext)
     try:
+
+        from IPython.core.interactiveshell import InteractiveShell
+        InteractiveShell._atexit_operations = InteractiveShell.atexit_operations
+        InteractiveShell.atexit_operations = lambda *args: None
+
         from IPython.terminal.embed import InteractiveShellEmbed
         ipshell = InteractiveShellEmbed.instance()
         ipshell(local_ns=localdict, module=dgpy_config)
+        ipshell._atexit_operations()
         do_systemexit()
         pass
     finally:
