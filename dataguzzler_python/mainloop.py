@@ -88,7 +88,29 @@ def start_tcp_server(hostname,port,**kwargs):
     return thread
 
 
-def console_input_processor(dgpy_config,contextname,localvars,rlcompleter):
+def ipython_input_processor(dgpy_config,contextname,localvars):
+    """This is meant to be run from a new thread. """
+    globaldecls=[]
+
+    # Dictionary of local variables
+    localdict={}
+    localdict.update(localvars)
+
+    InitThread() # This is a new thread
+    InputContext=SimpleContext()
+    InitContext(InputContext,contextname) # Allow to run stuff from main thread
+    PushThreadContext(InputContext)
+    try:
+        from IPython.terminal.embed import InteractiveShellEmbed
+        ipshell = InteractiveShellEmbed.instance()
+        ipshell(local_ns=localdict, module=dgpy_config)
+        do_systemexit()
+        pass
+    finally:
+        PopThreadContext()
+        pass
+
+def readline_input_processor(dgpy_config,contextname,localvars,rlcompleter):
     """This is meant to be run from a new thread. """
     globaldecls=[]
 

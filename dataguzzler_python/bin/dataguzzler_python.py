@@ -19,7 +19,7 @@ import ctypes
 import readline
 import rlcompleter
 
-from ..mainloop import start_tcp_server,console_input_processor
+from ..mainloop import start_tcp_server,readline_input_processor,ipython_input_processor
 from ..mainloop import PyDGConn,OldDGConn
 from ..conn import process_line
 from ..conn import write_response,render_response
@@ -58,7 +58,7 @@ def main(args=None):
         raise ValueError("Insufficient Python version: Requires Python 3.6 or above")
 
     if len(args) < 2:
-        print("Usage: %s [--profile] <config_file.dgp> [--arg1 string] [--arg2 343] [--arg3 3.1416] [args...]" % (args[0]))
+        print("Usage: %s [--profile] [--ipython] <config_file.dgp> [--arg1 string] [--arg2 343] [--arg3 3.1416] [args...]" % (args[0]))
         sys.exit(0)
         pass
 
@@ -96,6 +96,7 @@ def main(args=None):
 
 
     profiling=False
+    ipython=False
 
     localvars={}
 
@@ -110,10 +111,18 @@ def main(args=None):
     PushThreadContext(initialization_main_thread_context)
 
     argc=1
-    if args[argc]=="--profile":
-        profiling = True
-        argc += 1
-        pass
+
+    while True:
+        if args[argc] in ["--profile","--ipython"]:
+            if args[argc] == '--profile':
+                profiling = True
+            elif args[argc] == '--ipython':
+                ipython = True
+            argc += 1
+            pass
+        else:
+            break
+    
 
     spec_loader = None
     got_exception = False
@@ -255,7 +264,7 @@ def main(args=None):
     #MainContext=SimpleContext()
     #InitThreadContext(MainContext,"__main__") # Allow to run stuff from main thread
     #PushThreadContext(MainContext)
-    console_input_thread=Thread(target=dgp_completer_and_console_input_processor,args=(dgpy_config,"console_input",localvars,rlcompleter,spec_loader,got_exception),daemon=False)
+    console_input_thread=Thread(target=dgp_completer_and_console_input_processor,args=(dgpy_config,"console_input",localvars,rlcompleter,spec_loader,got_exception,ipython),daemon=False)
     console_input_thread.start()
 
     #Remap Ctrl+C/SIGINT to send to the console input processor instead
@@ -295,7 +304,7 @@ def ctype_async_raise(target, exception):
         ctypes.pythonapi.PyThreadState_SetAsyncExc(target_tid, NULL)
         raise SystemError("PyThreadState_SetAsyncExc failed")
 
-def dgp_completer_and_console_input_processor(dgpy_config,console_contextname,localvars,rlcompleter,spec_loader,got_exception):
+def dgp_completer_and_console_input_processor(dgpy_config,console_contextname,localvars,rlcompleter,spec_loader,got_exception,ipython):
     # run the spec_loader in sub_thread mode unless we got an exception above
     InitThread() # Allow stuff to run from this thread
     PushThreadContext(initialization_sub_thread_context)
@@ -324,5 +333,9 @@ def dgp_completer_and_console_input_processor(dgpy_config,console_contextname,lo
             PopThreadContext()
             pass
         pass
-    console_input_processor(dgpy_config,console_contextname,localvars,rlcompleter)
+    if ipython:
+        ipython_input_processor(dgpy_config,console_contextname,localvars)
+    else:
+        readline_input_processor(dgpy_config,console_contextname,localvars,rlcompleter)
+    
     pass
