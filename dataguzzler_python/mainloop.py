@@ -90,7 +90,6 @@ def start_tcp_server(hostname,port,**kwargs):
 
 def ipython_input_processor(dgpy_config,contextname,localvars):
     """This is meant to be run from a new thread. """
-    globaldecls=[]
 
     # Dictionary of local variables
     localdict={}
@@ -101,15 +100,53 @@ def ipython_input_processor(dgpy_config,contextname,localvars):
     InitContext(InputContext,contextname) # Allow to run stuff from main thread
     PushThreadContext(InputContext)
     try:
-
+        # We need to disable the atexit function because it will be called in the main thread
+        # and the SQLite module used by the history functionality is not thread safe and
+        # will throw an exception (though it appears to save anyway)
         from IPython.core.interactiveshell import InteractiveShell
         InteractiveShell._atexit_operations = InteractiveShell.atexit_operations
         InteractiveShell.atexit_operations = lambda *args: None
 
+        # Configure Prompt Options
+        from IPython.terminal.prompts import Prompts, Token
+        from traitlets.config.loader import Config
+
+        class CustomPrompt(Prompts):
+
+            def in_prompt_tokens(self):
+                return [
+                    (Token.Prompt, 'dgpy> ')
+                    ]
+
+            # Plan to update this later with something that more closely mirrors the readline interpreter
+            def out_prompt_tokens(self):
+                return [
+                    (Token.OutPrompt, '200   '),
+                ]
+
+        # Set Prompt and Other Configuration Options    
+        cfg = Config()
+        cfg.TerminalInteractiveShell.prompts_class=CustomPrompt
+        cfg.TerminalInteractiveShell.term_title=True
+        cfg.TerminalInteractiveShell.term_title_format="Dataguzzler-Python"
+        cfg.TerminalInteractiveShell.debugger_history_file = os.path.join(os.path.expanduser('~'),'.dataguzzler_python_debugger_history')
+
+        # We are using InteractiveShellEmbed to embed IPython (one of several different approaches)
         from IPython.terminal.embed import InteractiveShellEmbed
-        ipshell = InteractiveShellEmbed.instance()
+        ipshell = InteractiveShellEmbed.instance(config=cfg)
+
+        # Configure History to Store Outside of Normal IPython History
+        from IPython.core.history import HistoryManager
+        hm = HistoryManager(shell=ipshell, parent=ipshell, hist_file=os.path.join(os.path.expanduser('~'),'.dataguzzler_python_ipython_history.sqlite'))
+        ipshell.history_manager = hm
+        ipshell.configurables.append(hm)
+
         ipshell(local_ns=localdict, module=dgpy_config)
+
+        # Run atexit function manually to save history from this thread
         ipshell._atexit_operations()
+
+        # Exit
         do_systemexit()
         pass
     finally:
