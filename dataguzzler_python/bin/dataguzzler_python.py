@@ -122,7 +122,7 @@ def main(args=None):
             pass
         else:
             break
-    
+
 
     spec_loader = None
     got_exception = False
@@ -304,6 +304,9 @@ def ctype_async_raise(target, exception):
         ctypes.pythonapi.PyThreadState_SetAsyncExc(target_tid, NULL)
         raise SystemError("PyThreadState_SetAsyncExc failed")
 
+    # Let's notify any sleeping threads
+    dgpy.awake()
+
 def dgp_completer_and_console_input_processor(dgpy_config,console_contextname,localvars,rlcompleter,spec_loader,got_exception,ipython):
     # run the spec_loader in sub_thread mode unless we got an exception above
     InitThread() # Allow stuff to run from this thread
@@ -337,5 +340,5 @@ def dgp_completer_and_console_input_processor(dgpy_config,console_contextname,lo
         ipython_input_processor(dgpy_config,console_contextname,localvars)
     else:
         readline_input_processor(dgpy_config,console_contextname,localvars,rlcompleter)
-    
+
     pass
