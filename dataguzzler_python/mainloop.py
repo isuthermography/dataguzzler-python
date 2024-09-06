@@ -107,6 +107,12 @@ def ipython_input_processor(dgpy_config,contextname,localvars):
         InteractiveShell._atexit_operations = InteractiveShell.atexit_operations
         InteractiveShell.atexit_operations = lambda *args: None
 
+        # We need to wrap enable_gui with a QtWrapper to dispatch it to the
+        # main thread -- it creates a Qt object
+        from dataguzzler_python import QtWrapper
+        from IPython.terminal.interactiveshell import TerminalInteractiveShell
+        TerminalInteractiveShell.enable_gui = lambda *args: QtWrapper.QtWrapper(InteractiveShell.enable_gui)
+
         # Configure Prompt Options
         from IPython.terminal.prompts import Prompts, Token
         from traitlets.config.loader import Config
@@ -124,7 +130,7 @@ def ipython_input_processor(dgpy_config,contextname,localvars):
                     (Token.OutPrompt, '200   '),
                 ]
 
-        # Set Prompt and Other Configuration Options    
+        # Set Prompt and Other Configuration Options
         cfg = Config()
         cfg.TerminalInteractiveShell.prompts_class=CustomPrompt
         cfg.TerminalInteractiveShell.term_title=True
