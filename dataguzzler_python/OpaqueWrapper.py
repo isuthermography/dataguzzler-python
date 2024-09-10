@@ -151,7 +151,7 @@ OpaqueWrapper_dict = {} # Dictionary by boolean maps of copies of the OpaqueWrap
 MagicBooleanMap_cache = {} # Dictionary by class id of (class, MagicBooleanMap) 
     
 def MagicBooleanMap_generate(cls):
-    assert(type(cls) is type) # cls should be a class
+    assert(isinstance(cls, type)) # cls should be a class
     listmap = [ hasattr(cls,magicname) for magicname in magicnames_proxyable_ordered] # returns a list of booleans
     intlist = []
     index = 0

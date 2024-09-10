@@ -56,10 +56,10 @@ def censorobj(sourcecontext,destcontext,attrname,obj):
         return attemptunwrap(obj,destcontext)
     
     if objclass.__name__ == "QtWrapper":
-        from .QtWrapper import QtWrapper, qt5unwrap
-        # pre-wrapped qt5 object
+        from .QtWrapper import QtWrapper, qtunwrap
+        # pre-wrapped qt object
         if destcontext is main_thread_context:
-            return qt5unwrap(obj)
+            return qtunwrap(obj)
         else:
             # already wrapped
             return obj
