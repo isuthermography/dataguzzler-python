@@ -13,7 +13,6 @@ import atexit
 import ast
 import inspect
 import signal
-import ctypes
 
 # Enable readline editing/history/completion, as in 'python -i' interactive mode
 import readline
@@ -267,45 +266,17 @@ def main(args=None):
     console_input_thread=Thread(target=dgp_completer_and_console_input_processor,args=(dgpy_config,"console_input",localvars,rlcompleter,spec_loader,got_exception,ipython),daemon=False)
     console_input_thread.start()
 
-    #Remap Ctrl+C/SIGINT to send to the console input processor instead
+    #Remap Ctrl+C/SIGINT to send to registed functions
     signal.signal(signal.SIGINT, lambda a,b:
-                  ctype_async_raise(console_input_thread,
-                                    KeyboardInterrupt))
+                  dgpy._CallKeyboardInterruptFunctions())
 
+    # Register Command Reader to Receive KeyboardInterrupt
+    dgpy.RegisterKeyboardInterrupt(console_input_thread.ident)
 
     main_thread_run() # Let main_thread module take over the main thread
 
     pass
 
-
-# Modified from https://stackoverflow.com/questions/36484151/throw-an-exception-into-another-thread
-# Warning -- we cannot interrupt time.sleep using this method.  The only thing
-# that can interrupt time.sleep is a signal, which can only processed in the
-# main thread (which is why time.sleep can be interrupted with a Ctrl+C at a
-# Python Interpreter but not here). There are some platform specific quirks to
-# this as well.  We may want to implement a replacement for
-# time.sleep at some point that uses some kind of event to instead interrupt
-# the wait process. threading.Event could be a good option for this and this
-# code below would need to trigger that event.
-def ctype_async_raise(target, exception):
-    if target.is_alive():
-        target_tid = target.ident
-    else:
-        target_tid = threading.main_thread().ident
-
-    ret = ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_ulong(target_tid), ctypes.py_object(exception))
-    # ref: http://docs.python.org/c-api/init.html#PyThreadState_SetAsyncExc
-    if ret == 0:
-        raise ValueError("Invalid thread ID")
-    elif ret > 1:
-        # Huh? Why would we notify more than one threads?
-        # Because we punch a hole into C level interpreter.
-        # So it is better to clean up the mess.
-        ctypes.pythonapi.PyThreadState_SetAsyncExc(target_tid, NULL)
-        raise SystemError("PyThreadState_SetAsyncExc failed")
-
-    # Let's notify any sleeping threads
-    dgpy.awake()
 
 def dgp_completer_and_console_input_processor(dgpy_config,console_contextname,localvars,rlcompleter,spec_loader,got_exception,ipython):
     # run the spec_loader in sub_thread mode unless we got an exception above

@@ -14,6 +14,7 @@ import warnings
 import importlib
 import posixpath
 import ast
+import ctypes
 
 from urllib.request import url2pathname
 from urllib.parse import quote
@@ -37,15 +38,101 @@ from dataguzzler_python.configfile_utils import modify_source_into_function_call
 #    sys.stderr.write("dgpy: limatix not available; dc_value units will not be supported\n")
 #    pass
 
-_waithandle = threading.Condition()
+_waithandles = {} #threading.Condition()
+_keyboardinterruptthreads = {}
 
 def sleep(secs):
+    """
+    General purpose wakeable sleep method
+
+    When called from the command reader, Ctrl+c will interrupt the wait
+    Other threads can use this as well, but they must register to receive
+    KeyboardInterrupt exceptions with dgpy.RegisterKeyboardInterrupt.
+
+    Arguments:
+        secs: float number of seconds
+
+    Usage:
+        dgpy.sleep(1.0) # Sleeps for 1 second
+    """
+    tid = threading.current_thread().ident
+    if tid in _waithandles:
+        _waithandle = _waithandles[tid]
+    else:
+        _waithandles[tid] = threading.Condition()
+        _waithandle = _waithandles[tid]
     with _waithandle:
         _waithandle.wait(secs)
 
-def awake():
+def awake(tid):
+    """
+    Wake a thread sleeping with dgpy.sleep
+
+    Arguments:
+        tid: Thread ID from Thread().ident
+    """
+    _waithandle = _waithandles[tid]
     with _waithandle:
         _waithandle.notify_all()
+
+def RegisterKeyboardInterrupt(tid, fcn=None):
+    """
+    Registers to receive a KeyboardInterrupt when Ctrl + c is pressed
+
+    Calls dgpy._ctype_async_raise to send exception to registered thread
+    This can be modified with optional fcn keyword parameter, but the callback
+    should not block since this will be called from the main thread.
+
+    Arguments:
+        tid: Thread ID to Be Registered
+        fcn=None: Optional function handle to call instead
+    """
+    assert(tid not in _keyboardinterruptthreads), "Thread already registered"
+    if fcn is None:
+        fcn = lambda: _ctype_async_raise(tid, KeyboardInterrupt)
+    _keyboardinterruptthreads[tid] = fcn
+
+def UnregisterKeyboardInterrupt(tid):
+    """
+    Disable KeyboardInterrupt Callback
+
+    See RegisterKeyboardInterrupt for more details
+
+    Arguments:
+        tid: Thread ID to be Unregistered
+    """
+    assert(tid in _keyboardinterruptthreads), "Thread not registered"
+    del _keyboardinterruptthreads[tid]
+
+def _CallKeyboardInterruptFunctions():
+    for tid in _keyboardinterruptthreads:
+        _keyboardinterruptthreads[tid]()
+
+# Modified from https://stackoverflow.com/questions/36484151/throw-an-exception-into-another-thread
+# Warning -- we cannot interrupt time.sleep using this method.  The only thing
+# that can interrupt time.sleep is a signal, which can only processed in the
+# main thread (which is why time.sleep can be interrupted with a Ctrl+C at a
+# Python Interpreter but not here). There are some platform specific quirks to
+# this as well.  We may want to implement a replacement for
+# time.sleep at some point that uses some kind of event to instead interrupt
+# the wait process. threading.Event could be a good option for this and this
+# code below would need to trigger that event.
+def _ctype_async_raise(target_tid, exception):
+    ret = ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_ulong(target_tid), ctypes.py_object(exception))
+    # ref: http://docs.python.org/c-api/init.html#PyThreadState_SetAsyncExc
+    if ret == 0:
+        raise ValueError("Invalid thread ID")
+    elif ret > 1:
+        # Huh? Why would we notify more than one threads?
+        # Because we punch a hole into C level interpreter.
+        # So it is better to clean up the mess.
+        ctypes.pythonapi.PyThreadState_SetAsyncExc(target_tid, NULL)
+        raise SystemError("PyThreadState_SetAsyncExc failed")
+
+    # Let's notify any sleeping threads
+    awake(target_tid)
+
+
 
 
 def get_pint_util_SharedRegistryObject():

@@ -736,12 +736,15 @@ Once the GIL is reacquired, the exception is processed.
 A more general solution to this problem requires a more considerate design when using functions such as ``time.sleep``
 or other long running functions that release the GIL.  For instance, one could use ``threading.Event`` or
 ``threading.Condition`` to construct a waiting process that can be interrupted. For convenience, one such mechanism
-is exposed in the ``dgpy`` module for use in interactive code.  Simply call ``dgpy.sleep(secs)`` in place of
-``time.sleep(secs)``.  There is a corresponding ``dgpy.awake()`` function that can be used to programmatically
-interrupt all active ``dgpy.sleep`` calls.  The ``dgpy.awake()`` function is called by by the ``SIGINT`` handler in
-the main thread to wake up all sleeping threads so they can respond to the ``KeyboardInterrupt`` exception when Ctrl + c
-is pressed in the terminal.  It is important to note that this function should only be used in interactive code and
-separate mechanisms should be used within singleton threads in Dataguzzler-Python modules.
+is exposed in the ``dgpy`` module for use.  Simply call ``dgpy.sleep(secs)`` in place of ``time.sleep(secs)``.
+There is a corresponding ``dgpy.awake(thread_id)`` function that can be used to programmatically interrupt an
+active ``dgpy.sleep`` call.
+
+Threads other than the command reader can also register to receive a KeyboardInterrupt or similar exception when
+Ctrl + c is pressed.  Use ``dgpy.RegisterKeyboardInterrupt(thread_id)`` to register the callback. This will also call
+``dgpy.awake(thread_id)`` to interrupt an active call to ``dgpy.sleep`` in the registered thread. An optional function
+handle can be registered instead to modify the behavior -- however, care should be taken not to block, since this
+callback will be running in the main thread.
 
 Closing and Exiting
 -------------------
