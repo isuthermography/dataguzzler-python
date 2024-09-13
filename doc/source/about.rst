@@ -104,12 +104,14 @@ Dataguzzler-Python is built on Python (tested on 3.8 and newer) on the following
 and libraries:
 
   * setuptools: Python packaging support
+  * setuptools_scm: Python packaging support
   * wheel: Python packaging support
   * numpy: Python numerical toolkit
   * pint: Python units library
-  * PySide2 QT bindings (optional): GUI Python integration
+  * PySide2, PySide6, PyQt5, or PyQt6 QT bindings (optional): GUI Python integration
   * Matplotlib (optional; strongly recommended): Interactive plotting
   * pySerial (optional): Interface to physical or virtual (USB) serial ports.
+  * pyvisa (optional): Interface to laboratory instruments
   * SpatialNDE2 (optional; strongly recommended): Management and viewing of recorded data
 
 On Windows most of these dependencies are usually most easily

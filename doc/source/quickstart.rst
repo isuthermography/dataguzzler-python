@@ -12,6 +12,13 @@ Quick Start and Tutorial
     interpret ``.dgi`` files as Python to help with indentation and
     syntax highlighting.
 
+Because Dataguzzler-Python is a command line tool, the first step to running Dataguzzler-Python is usually opening up a suitable terminal or command prompt window. If you are using Anaconda on Windows, this means opening an Anaconda Prompt or Anaconda PowerShell Prompt from the start menu.
+
+In addition, your terminal or command prompt needs to be configured to use a Python environment that has Dataguzzler-Python installed. If you are using Anaconda, environment selection is performed with ``conda activate``, for example if you followed the Anaconda environment creation  instructions in the  :doc:`installation section <../installation>`,
+::
+   
+   conda activate SNDE
+    
 Dataguzzler-Python is run from the command line by giving it the name
 of a configuration file as its first parameter. The simplest example
 is in ``configdemo.dgp``, which defines a dummy class that pretends to
