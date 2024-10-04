@@ -10,7 +10,7 @@ from ..dgpy import Module
 from ..dgpy import InitCompatibleThread
 
 from .. import dgpy
-ur = pint.get_application_registry()
+# ur = pint.get_application_registry()
 
 class Dexela2923(metaclass=Module):
     """This class controls a Dexela 2923 x-ray imaging detector. It controls the detector over a serial link, but it does not do image acquisition, which is presumed to be handled seperately.
