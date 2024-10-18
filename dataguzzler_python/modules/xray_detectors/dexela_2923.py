@@ -5,11 +5,11 @@ import numpy as np
 import pint
 
 
-from ..dgpy import Module
+from ...dgpy import Module
 
-from ..dgpy import InitCompatibleThread
+from ...dgpy import InitCompatibleThread
 
-from .. import dgpy
+from ... import dgpy
 # ur = pint.get_application_registry()
 
 class Dexela2923(metaclass=Module):
@@ -33,6 +33,10 @@ class Dexela2923(metaclass=Module):
     TRIGMODE_SOFTWARE= 0
     TRIGMODE_EDGE= 0x0060
     TRIGMODE_DURATION= 0x00A0
+
+    # TRIGMODE_SOFTWARE = 0x061C  #Register 0
+    # TRIGMODE_EXTERNAL = 0x067C  #Register 0
+    
     
     def __init__(self,module_name,port_name_or_descriptor,trig_mode="SOFTWARE",exposure_time=100,high_full_well=False,debug=False):
         """port_name_or_descriptor is the pyserial device name (Linux
@@ -83,17 +87,27 @@ class Dexela2923(metaclass=Module):
         #Read status byte
         status_byte=self._fh.read(1)
         if status_byte==b"E":
-            #Error 
+            #Error
+            if self.debug:
+                print("read_response:got error")
+                pass
             self._readCR()
             return ("E",b"")
         elif status_byte==b"X":
             #Success
             self._readCR()
+            if self.debug:
+                print("read_response:got success (X) ")
+                pass            
             return ("X", b"")
         elif status_byte==b"S":
             #Read 5 more characters
             result=self._fh.read(5)
+            #!!!*** Somehow we always seem to read zeros!
             self._readCR()
+            if self.debug:
+                print("read_response:got characters ")
+                pass
             return ("S", result)
         else:
             raise ValueError(f"{self.module_name:s} Bad response from detector: expected E, X, or S; got 0x{ord(status_byte):x}.")
@@ -101,7 +115,7 @@ class Dexela2923(metaclass=Module):
     
     def _write_register(self,sensor_address,register_address,value):
         # Returns "X" for success or raises exception for error
-        cmd=f"W{sensor_address:u}{register_address:03u}{value:05u}\r"
+        cmd=f"W{sensor_address:d}{register_address:03d}{value:05d}\r"
         if self.debug:
             print(f"{self.module_name:s}: write register {cmd:s}")
             pass
@@ -113,7 +127,7 @@ class Dexela2923(metaclass=Module):
 
     def _read_register(self,sensor_address,register_address):
         # Returns register value or raises exception for error
-        cmd=f"R{sensor_address:u}{register_address:03u}\r"
+        cmd=f"R{sensor_address:d}{register_address:03d}\r"
         self._fh.write(cmd.encode("utf-8"))
         (status,result)=self._read_response()
         if self.debug:
@@ -127,8 +141,8 @@ class Dexela2923(metaclass=Module):
     @property
     def exposure_time(self):
         """ get or set the exposure time. Default units are ms."""
-        lsword=self._read_register(0,11)
-        msword=self._read_register(0,12)
+        lsword=self._read_register(1,11)
+        msword=self._read_register(1,12)
 
         exposure_time_10us=(msword << 16) | lsword #integer exposure time in units of 10 us
         exposure_time_quantity=(exposure_time_10us / 100.) * self.ur.millisecond
@@ -157,13 +171,13 @@ class Dexela2923(metaclass=Module):
     @property
     def high_full_well(self):
         """The gain (high_full_well) is bit 3(0x4) of register 3"""
-        reg3=self._read_register(0,3)
+        reg3=self._read_register(1,3)
         return bool(reg3 & 0x4)
 
     @high_full_well.setter
     def high_full_well(self,value):
         value=bool(value)
-        reg3=self._read_register(0,3)
+        reg3=self._read_register(1,3)
         if value:
             reg3 |= 0x4
             pass
@@ -175,7 +189,7 @@ class Dexela2923(metaclass=Module):
 
     @property
     def trig_mode(self):
-        reg0=self._read_register(0,0)
+        reg0=self._read_register(1,0)
         raw_value=reg0 & ~self.TRIGMODE_OTHERREGBITS
         return {self.TRIGMODE_SOFTWARE:"SOFTWARE",self.TRIGMODE_EDGE:"EDGE",self.TRIGMODE_DURATION:"DURATION"}[raw_value]
 
@@ -192,7 +206,7 @@ class Dexela2923(metaclass=Module):
             pass
         else:
             raise ValueError(f"{self.module_name:s}: unknown trigger mode {value:s}.")
-        reg0=self._read_register(0,0)
+        reg0=self._read_register(1,0)
         reg0 &= self.TRIGMODE_OTHERREGBITS
         reg0 |= raw_value
         self._write_register(0,0,reg0)
