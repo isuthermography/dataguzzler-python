@@ -2,6 +2,10 @@ from dataguzzler_python import dgpy
 
 include(dgpy,"dgpy_startup.dpi") # If you get a NameError here, be sure you are executing this file with dataguzzler-python
 
+include(dgpy,"Qt.dpi")
+
+include(dgpy,"error_console.dpi") 
+
 include(dgpy,"matplotlib.dpi")
 
 import spatialnde2 as snde
@@ -19,3 +23,4 @@ def Test():
     import time
     time.sleep(10)
     print('Test')
+
