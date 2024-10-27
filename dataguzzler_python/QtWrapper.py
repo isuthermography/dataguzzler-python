@@ -172,9 +172,11 @@ def QtCensorObj(sourcecontext,destcontext,attrname,obj):
     if obj is type or obj is None:
         return obj # never need to wrap "type" or None
 
-    if objclass.__module__ == "spatialnde2":
+    if objclass.__module__ == "spatialnde2" and not hasattr(objclass, 'QWidget'):
         # Spatialnde2 wrapped objects are (generally)
-        # thread safe so we just pass them through ere
+        # thread safe so we just pass them through, except for
+        # QWidget-derived objects that should have a .QWidget() method
+        # See snde_qt.i from spatialnde2 for more details.
         return obj
     
     
