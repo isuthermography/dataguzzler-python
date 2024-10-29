@@ -1,0 +1,14 @@
+from dataguzzler_python import dgpy
+include(dgpy, "Qt.dpi")
+from dataguzzler_python import QtWrapper
+import sys
+
+global error_window
+
+error_window = QtWrapper.InstantiateInQtMainThread(
+    "dataguzzler_python.error_console",
+    "ErrorConsoleGUI",
+    QApp,
+)
+error_window.show()
+sys.stderr.DisableStdoutOutput()
