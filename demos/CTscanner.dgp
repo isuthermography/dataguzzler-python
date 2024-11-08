@@ -5,7 +5,7 @@ import spatialnde2 as snde
 include(dgpy,"dgpy_startup.dpi") # If you get a NameError here, be sure you are executing this file with dataguzzler-python
 
 include(dgpy,"Qt.dpi",prefer_pyqt=False)
-include(snde,"matplotlib.dpi")
+include(dgpy,"matplotlib.dpi")
 include(snde,"recdb.dpi",enable_opencl=True)
 include(snde,"recdb_gui.dpi")
 import dgpython_edt_clink as edt
@@ -19,7 +19,7 @@ channel = 0
 
 panel = edt.edtcapture.EDTCapture("panel",recdb, device, unit, channel,"/panel",6144,1544,discardtopline=True )
 
-d2923=dexela2923("d2923",cam.open_serial(115200),trig_mode="SOFTWARE",exposue_time=100,high_full_well=True,debug=True)
+d2923=Dexela2923("d2923",panel.open_serial(115200),trig_mode="SOFTWARE",exposure_time=100,high_full_well=True,debug=True)
 
 
 dgpython_release_main_thread() # allow qt main loop to execute in parallel with subsequent initialization.
@@ -34,7 +34,7 @@ dgpython_release_main_thread() # allow qt main loop to execute in parallel with 
 #tube.BeamCurrent(122.0*uA)
 
 
-class CTScan(object,metaclass=pydg.Module):
+class CTScan(object,metaclass=dgpy.Module):
     start=None
     step=None
     endplusone=None
@@ -54,8 +54,8 @@ class CTScan(object,metaclass=pydg.Module):
         self._numavgs=numavgs
         pass
 
-
-    def __init__(self,module)name,start=0.0,step=1.0,endplusone=360.0,numavgs=16): # module_name MUST be first parameter
+ 
+    def __init__(self,module_name,start=0.0,step=1.0,endplusone=360.0,numavgs=16): # module_name MUST be first parameter
         #print("Init the hardware")
         assert(pydg.CurContext() is self)
 
