@@ -428,6 +428,6 @@ class subproc(object,metaclass=dgpy_Module):
         if contextdir is None:
             raise ValueError("Could not figure out context directory")
         
-        return cls(module_name,None,dgpcontent,contextdir,debug)
+        return cls(module_name,"None",dgpcontent,contextdir,debug)
 
     
