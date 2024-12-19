@@ -39,9 +39,8 @@ class DummyData(object, metaclass=dgpy_Module):
         else:
             assert(False)
 
-        transact = recdb.start_transaction()
-        self.chanptr = recdb.define_channel("/%s" % (self.module_name), "main", self.recdb.raw())
-        recdb.end_transaction(transact)
+        with recdb.start_transaction() as trans:
+            self.chanptr = recdb.define_channel(trans, "/%s" % (self.module_name), "main")
 
         self.StartAcquisition()
 
@@ -49,15 +48,14 @@ class DummyData(object, metaclass=dgpy_Module):
         InitCompatibleThread(self, "_thread")
 
         while not self._quit:
-            transact = self.recdb.start_transaction()
-            rec = snde.create_ndarray_ref(self.recdb, self.chanptr, self.recdb.raw(), snde.SNDE_RTN_FLOAT32)
-            globalrev = self.recdb.end_transaction(transact)
+            with self.recdb.start_transaction() as trans:
+                rec = snde.create_ndarray_ref(trans, self.chanptr, snde.SNDE_RTN_FLOAT32)
             rec.rec.metadata = snde.immutable_metadata()
             rec.rec.mark_metadata_done()
             rec.allocate_storage(self.shape, False)
-            rec.data()[:] = np.sin(np.linspace(0, 10*np.pi, self.len)).reshape(self.shape) + np.random.normal(0,0.01,self.len).reshape(self.shape)
+            rec.data[:] = np.sin(np.linspace(0, 10*np.pi, self.len)).reshape(self.shape) + np.random.normal(0,0.01,self.len).reshape(self.shape)
             rec.rec.mark_data_ready()
-            globalrev.wait_complete()
+            trans.globalrev_wait()
             time.sleep(0.01)
             pass
 

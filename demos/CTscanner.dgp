@@ -34,7 +34,7 @@ dgpython_release_main_thread() # allow qt main loop to execute in parallel with 
 #tube.BeamCurrent(122.0*uA)
 
 
-class CTScan(object,metaclass=pydg.Module):
+class CTScan(object,metaclass=dgpy.Module):
     start=None
     step=None
     endplusone=None
@@ -55,9 +55,9 @@ class CTScan(object,metaclass=pydg.Module):
         pass
 
 
-    def __init__(self,module)name,start=0.0,step=1.0,endplusone=360.0,numavgs=16): # module_name MUST be first parameter
+    def __init__(self,module_name,start=0.0,step=1.0,endplusone=360.0,numavgs=16): # module_name MUST be first parameter
         #print("Init the hardware")
-        assert(pydg.CurContext() is self)
+        assert(dgpy.CurContext() is self)
 
         self.start=start
         self.step=step
@@ -70,7 +70,7 @@ class CTScan(object,metaclass=pydg.Module):
         pass
     
     def run(self):
-        assert(pydg.CurContext() is self)
+        assert(dgpy.CurContext() is self)
 
         MOT.cmd("RY:STATUS ON")
         # Clear out IRstack

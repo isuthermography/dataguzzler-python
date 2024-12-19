@@ -32,12 +32,13 @@ dmx = dmx_usb_pro("dmx",port_name,4,recdb = recdb,dmxchan = "/DMX",debug=False)
 # Start a transaction that we will use to provide a pulse pattern
 # to transmit on the DMX interface (a single two second pulse after
 # two seconds).
-transact = recdb.start_transaction() 
-dmxchan = recdb.define_channel("/DMX", "main", recdb.raw())
+with recdb.start_transaction() as trans: 
+	dmxchan = recdb.define_channel(trans, "/DMX", "main")
 
-# Define the recording for storing the pulse pattern.
-dmx_ref = snde.create_ndarray_ref(recdb,dmxchan,recdb.raw(),snde.SNDE_RTN_FLOAT32)
-globalrev = transact.end_transaction()
+	# Define the recording for storing the pulse pattern.
+	dmx_ref = snde.create_ndarray_ref(trans,dmxchan,snde.SNDE_RTN_FLOAT32)
+
+globalrev = trans.globalrev()
 
 # Define a time range 
 t0 = 0.0
@@ -58,8 +59,8 @@ dmx_ref.rec.mark_metadata_done()
 
 # Generate and fill the array for the pulse pattern. 
 dmx_ref.allocate_storage([ nt ],False)
-dmx_ref.data()[:] = np.zeros(nt,dtype = "d")
-dmx_ref.data()[(t >= 2) & (t < 4)] = 1.0
+dmx_ref.data[:] = np.zeros(nt,dtype = "d")
+dmx_ref.data[(t >= 2) & (t < 4)] = 1.0
 
 # Indicate that we have finished providing data for this recording. 
 dmx_ref.rec.mark_data_ready()

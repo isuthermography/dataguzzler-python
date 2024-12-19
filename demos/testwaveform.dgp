@@ -1,0 +1,41 @@
+# This is a simple example of using dataguzzler-python
+# with the spatialnde2 recording database. 
+
+from dataguzzler_python import dgpy
+import spatialnde2 as snde
+import numpy as np
+
+include(dgpy,"dgpy_startup.dpi") # If you get a NameError here, be sure you are executing this file with dataguzzler-python
+
+include(dgpy,"Qt.dpi",prefer_pyqt=False) 
+
+include(snde,"recdb_gui.dpi")
+
+include(dgpy,"matplotlib.dpi")
+
+import math
+
+rec_len=500
+
+
+transact = recdb.start_transaction(); # Transaction RAII holder
+
+testchan_config=snde.channelconfig("/test_channel", "main", False)
+  
+testchan = recdb.reserve_channel(transact, testchan_config);
+
+# demonstrate alternative ways to create the recording
+
+test_rec_32 = snde.create_ndarray_ref(transact,testchan,snde.SNDE_RTN_FLOAT32)
+
+globalrev = transact.end_transaction()
+
+test_rec_32.rec.metadata=snde.immutable_metadata()
+test_rec_32.rec.mark_metadata_done()
+test_rec_32.allocate_storage([ rec_len ]);
+
+test_rec_32.data[:] = np.sin(np.linspace(0, 10*np.pi, 500))
+
+test_rec_32.rec.mark_data_ready()
+
+globalrev.wait_complete()
