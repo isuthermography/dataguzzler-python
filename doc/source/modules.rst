@@ -714,6 +714,38 @@ is not allowed to acquire Dataguzzler-Python context locks (except perhaps its o
 and that is why singleton worker threads that dispatch method call requests
 are not allowed to call other Dataguzzler-Python modules. 
 
+Sleeping and ``KeyboardInterrupt``
+----------------------------------
+There are scenarios where you may need to include an extended pause in your code, for instance, waiting
+on a process for which you know how long it will take but do not have feedback, or, running some
+timed process where you run and then wait for a defined period of time before running again. Oftentimes
+in these scenarios, we wish to be able to break out of this pause by pressing Ctrl + c, which raises a
+``KeyboardInterrupt`` exception. This is accomplished by raising a ``SIGINT`` signal.  However, if you
+are running a GUI which occupies the main thread, the SpatialNDE2 recording database viewer for instance,
+this will interfere with this process in potentially two ways: 1) replacing or disabling the ``SIGINT``
+handler, and 2) preventing a signal from reaching the thread that needs to be interrupted because signals
+are only processed in the main thread.
+
+To work around the main issue of concern, Dataguzzler-Python replaces the ``SIGINT`` signal handler with
+a function that will use the Python C API to raise a ``KeyboardInterrupt`` exception in the command reader
+thread.  This is anticipated to cover the majority of common use cases.  However, operations that release
+the GIL, such as ``time.sleep`` will not be interrupted by this exception being raised because this can only
+be done if the command was ran from the main thread (where the low-level signal handling code wakes the thread).
+Once the GIL is reacquired, the exception is processed.
+
+A more general solution to this problem requires a more considerate design when using functions such as ``time.sleep``
+or other long running functions that release the GIL.  For instance, one could use ``threading.Event`` or
+``threading.Condition`` to construct a waiting process that can be interrupted. For convenience, one such mechanism
+is exposed in the ``dgpy`` module for use.  Simply call ``dgpy.sleep(secs)`` in place of ``time.sleep(secs)``.
+There is a corresponding ``dgpy.awake(thread_id)`` function that can be used to programmatically interrupt an
+active ``dgpy.sleep`` call.
+
+Threads other than the command reader can also register to receive a KeyboardInterrupt or similar exception when
+Ctrl + c is pressed.  Use ``dgpy.RegisterKeyboardInterrupt(thread_id)`` to register the callback. This will also call
+``dgpy.awake(thread_id)`` to interrupt an active call to ``dgpy.sleep`` in the registered thread. An optional function
+handle can be registered instead to modify the behavior -- however, care should be taken not to block, since this
+callback will be running in the main thread.
+
 Closing and Exiting
 -------------------
 

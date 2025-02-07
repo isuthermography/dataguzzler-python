@@ -140,6 +140,6 @@ setup(name="dataguzzler_python",
           "install": InstallCommand,
           "build": BuildCommand
       },
-      packages=["dataguzzler_python","dataguzzler_python.bin","dataguzzler_python.modules","dataguzzler_python.modules.motion_control"],
+      packages=["dataguzzler_python","dataguzzler_python.bin","dataguzzler_python.modules","dataguzzler_python.modules.motion_control","dataguzzler_python.modules.xray_detectors"],
       package_data=package_data,
       entry_points={"console_scripts": console_scripts_entrypoints })

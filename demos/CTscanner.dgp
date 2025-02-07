@@ -1,121 +1,40 @@
 from dataguzzler_python import dgpy
+
+import spatialnde2 as snde
+
 include(dgpy,"dgpy_startup.dpi") # If you get a NameError here, be sure you are executing this file with dataguzzler-python
 
-include(dgpy,"dgpy_dgold.dpi")
+include(dgpy,"Qt.dpi",prefer_pyqt=False)
+include(dgpy,"matplotlib.dpi")
+include(snde,"recdb.dpi",enable_opencl=True)
+include(snde,"recdb_gui.dpi")
+import dgpython_edt_clink as edt
+import dgpython_edt_clink.edtcapture
+
+from dataguzzler_python.modules.xray_detectors.dexela_2923 import Dexela2923
+
+device =  b"pdv"
+unit = 0
+channel = 0
+
+panel = edt.edtcapture.EDTCapture("panel",recdb, device, unit, channel,"/panel",6144,1544,discardtopline=True )
+
+d2923=Dexela2923("d2923",panel.open_serial(115200),trig_mode="SOFTWARE",exposure_time=100,high_full_well=True,debug=True)
 
 
-from limatix.dc_value import numericunitsvalue as nuv
+dgpython_release_main_thread() # allow qt main loop to execute in parallel with subsequent initialization.
 
-
-
-
-uA = nuv("1 microamp")
-kV = nuv("1 kilovolt")
-
-dgold.library("wfmstore.so")
-dgold.library("metadata.so")
-dgold.library("dio8bit.so")
-dgold.library("dglink.so")
-dgold.library("fftwlink.so"," nthreads=4\n fftw_estimate\n")
-
-from dataguzzler_python import savewfm  # must be AFTER wfmstore.so library is loaded 
-
-sys.path.append('/usr/local/src/dataguzzler-python/demos')
-import kevextube
+#import kevextube
 
 # Should provide mlockall functionality? 
 
 
-TIME=dgold.DGModule("TIME","posixtime.so","")
-WFM=dgold.DGModule("WFM","wfmio.so","")
-
-AUTH=dgold.DGModule("AUTH","auth.so",r"""
-        AuthCode(localhost) = "xyzzy"
-	AuthCode(127.0.0.1/32) = "xyzzy"
-	AuthCode([::1]/128) = "xyzzy"
-""")
-
-stdmathinit=open("/usr/local/dataguzzler/conf/m4/stdinit.pymathm4","r").read()
-stdmathfunc=open("/usr/local/dataguzzler/conf/m4/stdfunc.pymathm4","r").read()
-
-MATH=dgold.DGModule("MATH","wfmmath.so",r""" 
-  numthreads = 4 # -1 would mean use number of CPU's + 1 
-  #debugmode=true
- 
-  pymath {
-    # Support Python-based math functions
-    %s
-    %s 
-
-    # (can add custom math functions here)
-  }
-
-""" % (stdmathinit,stdmathfunc))
+#tube=kevextube.kevextube("/dev/ttyUSBXRayTube")
+#tube.BeamVoltage(130.0*kV)
+#tube.BeamCurrent(122.0*uA)
 
 
-ICAPT=dgold.DGModule("ICAPT","edtcapture.so",r""" 
-	# device parameters
-        devname="pdv" 
-        unit=0
-        channel=0
-
-        # image size expected from camera (note that only black and white images, 8 or 16 bit, are currently supported. 
-	width=6144
-        height=1944
-
-        channelname="CAMLINK" # Name of the dataguzzler channel
-	numbufs=32 # size of the ring buffer, in frames. should generally be at least the # of averages you are using
-
-	calcsync=true # don't allow new acquisitions until previous done processing
-	discardtopline=false
-
-        timeout=300 ms
-
-""")
-
-DEXELA=dgold.DGModule("DEXELA","dexeladetector.so",r""" 
-  uri = "ICAPT://115200"
-  timeout = 5000 ms
-  exposuretime = 100 ms
-  gain = HIGHFULLWELL
-  trigmode = SOFTWARE
-
-
-""")
-
-
-
-MOT=dgold.DGModule("MOT","compumotor6k.so",r""" 
-    
-    # NOTE: This motion controller seems to require 
-    # a manual ARP entry (?) when the network cable is plugged in 
-    # or the motion controller is power cycled e.g. arp -s 172.16.1.1 00:90:55:00:df:dc
-    #uri="tcp://172.16.1.1:5002:debug"
-    uri="tcp://172.16.1.1:5002"
-    # 25000 steps per cm for each linear axis
-    # 25000 step per 4 deg. for rotation axis
-
-    axiscount=4
-    axisname:1="Z"
-    axisname:2="X"
-    axisname:3="Y"
-    axisname:4="RY"
-  
-    axisstep:X=0.4 um  # step size for X axis
-    axisstep:Y=0.4 um  # step size for Y axis
-    axisstep:Z=0.4 um  # step size for Z axis
-    axisstep:RY=.00016 deg  # step size in degrees for RY (theta) axis
-  
-""")
-MOT.cmd("RY:VEL 3.0")  # speed up rotation axis
-
-tube=kevextube.kevextube("/dev/ttyUSBXRayTube")
-tube.BeamVoltage(130.0*kV)
-tube.BeamCurrent(122.0*uA)
-
-
-
-class CTScan(object,metaclass=pydg.Module):
+class CTScan(object,metaclass=dgpy.Module):
     start=None
     step=None
     endplusone=None
@@ -135,10 +54,9 @@ class CTScan(object,metaclass=pydg.Module):
         self._numavgs=numavgs
         pass
 
-
-    def __init__(self,module)name,start=0.0,step=1.0,endplusone=360.0,numavgs=16): # module_name MUST be first parameter
+    def __init__(self,module_name,start=0.0,step=1.0,endplusone=360.0,numavgs=16): # module_name MUST be first parameter
         #print("Init the hardware")
-        assert(pydg.CurContext() is self)
+        assert(dgpy.CurContext() is self)
 
         self.start=start
         self.step=step
@@ -151,7 +69,7 @@ class CTScan(object,metaclass=pydg.Module):
         pass
     
     def run(self):
-        assert(pydg.CurContext() is self)
+        assert(dgpy.CurContext() is self)
 
         MOT.cmd("RY:STATUS ON")
         # Clear out IRstack
@@ -223,7 +141,7 @@ class CTScan(object,metaclass=pydg.Module):
 
     pass
 
-CTScan=CTScan("CTScan module")
+#CTScan=CTScan("CTScan module")
 
 
 
@@ -245,8 +163,8 @@ def captureflood(wait=True):
         pass
     pass
 
-FloodSave=savewfm.savewfm("FloodSave")
-floodpath="~/XRay_floodimages"
+#FloodSave=savewfm.savewfm("FloodSave")
+#floodpath="~/XRay_floodimages"
 
 
 def saveflood():
@@ -268,15 +186,15 @@ def loadflood():
     pass
 
 
-MATH.cmd("def rawimg=dexeladeinterlace2923(CAMLINK,true)")
-MATH.cmd("def diffimg=sub(rawimg,darkimg)")
-MATH.cmd("def calibimg=div(diffimg,floodimg)")
-MATH.cmd("def CTcube=accum(CTangle,360)")
+#MATH.cmd("def rawimg=dexeladeinterlace2923(CAMLINK,true)")
+#MATH.cmd("def diffimg=sub(rawimg,darkimg)")
+#MATH.cmd("def calibimg=div(diffimg,floodimg)")
+#MATH.cmd("def CTcube=accum(CTangle,360)")
 
-capturedark(wait=False)
+#capturedark(wait=False)
 
 from dataguzzler_python import password_auth,password_acct
 
-include(dgpy,"network_access.dpi",
-        auth=	password_auth(password_acct("dgp","xyzzy")))
+#include(dgpy,"network_access.dpi",
+#        auth=	password_auth(password_acct("dgp","xyzzy")))
 

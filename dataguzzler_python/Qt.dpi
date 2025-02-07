@@ -48,6 +48,9 @@ if not "Qt" in globals():
       # Call QApp.processEvents() immedately to ease debugging, per
       # https://stackoverflow.com/questions/56686603/how-to-avoid-sigpipe-due-to-a-timeout-when-debugging-an-x11-program
       QApp.processEvents()
+
+      # Ensures that signals are handed over to Python
+      Qt.SignalWakeupHandler(QApp)
       
       # Queue take over of main thread with the Qt event loop   
       main_thread.queue_to_run_in_main_thread(lambda: Qt.QtCore.QMetaObject.invokeMethod(QApp,"quit",Qt.QtCore.Qt.QueuedConnection),Qt.QtEventLoop,QApp)
@@ -75,6 +78,9 @@ if not "Qt" in globals():
          # Call QApp.processEvents() immedately to ease debugging, per
          # https://stackoverflow.com/questions/56686603/how-to-avoid-sigpipe-due-to-a-timeout-when-debugging-an-x11-program
          QApp.processEvents()
+
+         # Ensures that signals are handed over to Python
+         Qt.SignalWakeupHandler(QApp)
          
          Qt.QtEventLoop(QApp)
          pass

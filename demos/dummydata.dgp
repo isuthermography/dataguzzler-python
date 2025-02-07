@@ -2,6 +2,9 @@ from dataguzzler_python import dgpy
 
 include(dgpy,"dgpy_startup.dpi") # If you get a NameError here, be sure you are executing this file with dataguzzler-python
 
+include(dgpy,"Qt.dpi")
+include(dgpy,"error_console.dpi")
+
 include(dgpy,"matplotlib.dpi")
 
 import spatialnde2 as snde
@@ -13,9 +16,3 @@ from dummydata import DummyData
 wfm=DummyData("wfm", recdb, 1000)
 
 img=DummyData("img", recdb, shape=(20,20))
-
-
-def Test():
-    import time
-    time.sleep(10)
-    print('Test')

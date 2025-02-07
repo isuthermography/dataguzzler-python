@@ -4,14 +4,7 @@ Installation
 Dataguzzler-Python is distributed as a Python source tree. You will
 need a Python installation (at least v3.8) with the setuptools and
 wheel packages installed. Also install the prerequisite dependencies
-listed in the about section (above or in ``about.rst``).
-
-If you are also installing SpatialNDE2 (highly recommended), you
-may want to do that first, as on some platforms (Windows)
-the recommended procedure involves creating a virtual Python
-environment, and you will want to install Dataguzzler-Python
-into the same environment. 
-
+listed in the :doc:`about section <../about>`.
 
 On Anaconda you will probably want at least the following packages:
 numpy scipy matplotlib cython ipython pip opencv pint lxml setuptools pyreadline pyserial pyside2 pyvisa git wheel build setuptools_scm. If you considering installing SpatialNDE2, you will also want: 
@@ -21,7 +14,7 @@ To create a new Anaconda environment with all these packages, run, for example:
 
 ::
    
-   conda create -n SNDE -c conda-forge python=3.9 numpy scipy matplotlib cython ipython pip opencv clhpp pyopencl pint hdf5 h5py lxml setuptools netcdf4 cmake openscenegraph pyopengl glfw freeglut glew mesa eigen swig pyreadline pyserial pyside2 hdf5 pyvisa git wheel
+   conda create -n SNDE -c conda-forge python=3.11 numpy scipy matplotlib cython ipython pip opencv clhpp pyopencl pint hdf5 h5py lxml setuptools netcdf4 cmake openscenegraph pyopengl glfw freeglut glew mesa eigen swig pyreadline pyserial pyside2 hdf5 pyvisa git wheel setuptools_scm
 
 You can then activate the Anaconda environment with:
 

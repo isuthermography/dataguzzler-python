@@ -12,12 +12,13 @@ import traceback
 import atexit
 import ast
 import inspect
+import signal
 
 # Enable readline editing/history/completion, as in 'python -i' interactive mode
 import readline
 import rlcompleter
 
-from ..mainloop import start_tcp_server,console_input_processor
+from ..mainloop import start_tcp_server,readline_input_processor,ipython_input_processor
 from ..mainloop import PyDGConn,OldDGConn
 from ..conn import process_line
 from ..conn import write_response,render_response
@@ -42,29 +43,29 @@ def main(args=None):
     # GIL for excessive periods. We upper bound the
     # switch interval at 1 ms, compared to the 2022 default
     # of 5 ms.
-    
+
     if sys.getswitchinterval() > 1e-3:
         sys.setswitchinterval(1e-3)
         pass
-    
+
     if args is None:
         args=sys.argv
         pass
-    
+
     global dgpy_config  #  reminder
     if sys.version_info < (3,6,0):
         raise ValueError("Insufficient Python version: Requires Python 3.6 or above")
 
     if len(args) < 2:
-        print("Usage: %s [--profile] <config_file.dgp> [--arg1 string] [--arg2 343] [--arg3 3.1416] [args...]" % (args[0]))
+        print("Usage: %s [--profile] [--ipython] <config_file.dgp> [--arg1 string] [--arg2 343] [--arg3 3.1416] [args...]" % (args[0]))
         sys.exit(0)
         pass
 
     # Simplify help() output by removing all the extraneous stuff
-    monkeypatch_visiblename() 
-    
+    monkeypatch_visiblename()
+
     multiprocessing.set_start_method('spawn') # This is here because it's a good idea. Otherwise subprocesses have the potential to be dodgy because of fork() artifacts and because we have the original dgpy_config module and the subprocess dgpy_config which replaces it after-the-fact in the Python module list. Also anything with hardware linkages could be super dogdy after a fork
-    
+
     # register readline history file and completer
     readline_doc = getattr(readline, '__doc__', '')
     if readline_doc is not None and 'libedit' in readline_doc:
@@ -73,7 +74,7 @@ def main(args=None):
         readline.parse_and_bind('tab: complete')
         pass
 
-    try: 
+    try:
         readline.read_init_file()
         pass
     except OSError:
@@ -94,28 +95,37 @@ def main(args=None):
 
 
     profiling=False
-    
+    ipython=False
+
     localvars={}
 
     #  Separate config context eliminated because
     # for QT things created during config would be incompatible with main loop
     # ... It was a bit superfluous anyway
     #ConfigContext=SimpleContext()
-    
+
     #InitThreadContext(ConfigContext,"dgpy_config") # Allow to run stuff from main thread
     #PushThreadContext(ConfigContext)
     InitThread() # Allow stuff to run from main thread
     PushThreadContext(initialization_main_thread_context)
-    
+
     argc=1
-    if args[argc]=="--profile":
-        profiling = True
-        argc += 1
-        pass
+
+    while True:
+        if args[argc] in ["--profile","--ipython"]:
+            if args[argc] == '--profile':
+                profiling = True
+            elif args[argc] == '--ipython':
+                ipython = True
+            argc += 1
+            pass
+        else:
+            break
+
 
     spec_loader = None
     got_exception = False
-    try: 
+    try:
         configfile=args[argc]
         argc += 1
 
@@ -132,12 +142,12 @@ def main(args=None):
         except FileNotFoundError:
             localvars["__dgpy_last_exc_info"]=sys.exc_info()
             traceback.print_exc()
-            
+
             sys.stderr.write("\nRun dgpy.pm() to debug\n")
             pass
-        
 
-        
+
+
         loader = DGPyConfigFileLoader("dgpy_config",configfile,sourcetext,os.path.split(configfile)[0],None)
         plausible_params = loader.get_plausible_params()
 
@@ -145,8 +155,8 @@ def main(args=None):
         argi = 0
 
         args_out = [ configfile ]
-        
-        
+
+
         while argi < len(remainingargs):
             # handle named keyword parameters
 
@@ -166,7 +176,7 @@ def main(args=None):
                     pass
 
                 variable_name=variable_name.replace("-","_") # convert minus to underscore in variable name
-                
+
                 if variable_name not in plausible_params:
                     raise ValueError("Variable override parameter --%s is not simply assigned in the dataguzzler-python configuration" % (variable_name))
 
@@ -180,10 +190,10 @@ def main(args=None):
                 # add to args_out
                 args_out.append(arg)
                 pass
-            
+
             argi += 1
             pass
-        
+
         if profiling:
             try:
                 import yappi
@@ -206,22 +216,22 @@ def main(args=None):
             print("yappi.get_func_stats().print_all()")
             print(" ")
             pass
-            
-        
-        ##### (global variables will be in dgpy_config.__dict__) 
+
+
+        ##### (global variables will be in dgpy_config.__dict__)
         dgpy.dgpy_running=True
-        
+
 
         # pass evaluated parameters to loader
         loader.set_actual_params(args_out,kwargs)
         spec = importlib.util.spec_from_loader("dgpy_config", #configfile,
                                                loader=loader)
-        
+
         # load config file
         dgpy_config = importlib.util.module_from_spec(spec)
         spec_loader = spec.loader
         sys.modules["dgpy_config"]=dgpy_config
-        
+
         # run config file up until any dgpython_release_main_thread() call
         spec.loader.exec_module(dgpy_config,mode="main_thread")
         pass
@@ -229,7 +239,7 @@ def main(args=None):
         sys.stderr.write("Exception running config file...\n")
 
         got_exception = True
-        
+
         localvars["__dgpy_last_exc_info"]=sys.exc_info()
 
         traceback.print_exc()
@@ -239,9 +249,9 @@ def main(args=None):
         #import pdb
         #pdb.post_mortem()
         pass
-    
+
     finally:
-        
+
         PopThreadContext()
         pass
 
@@ -249,22 +259,30 @@ def main(args=None):
     #tcp_thread=start_tcp_server("localhost",1651)
     #old_dg_thread=start_tcp_server("localhost",1649,connbuilder=lambda **kwargs: OldDGConn(**kwargs))
 
-    
+
     #MainContext=SimpleContext()
     #InitThreadContext(MainContext,"__main__") # Allow to run stuff from main thread
     #PushThreadContext(MainContext)
-    console_input_thread=Thread(target=dgp_completer_and_console_input_processor,args=(dgpy_config,"console_input",localvars,rlcompleter,spec_loader,got_exception),daemon=False)
+    console_input_thread=Thread(target=dgp_completer_and_console_input_processor,args=(dgpy_config,"console_input",localvars,rlcompleter,spec_loader,got_exception,ipython),daemon=False)
     console_input_thread.start()
 
+    #Remap Ctrl+C/SIGINT to send to registed functions
+    signal.signal(signal.SIGINT, lambda a,b:
+                  dgpy._CallKeyboardInterruptFunctions())
+
+    # Register Command Reader to Receive KeyboardInterrupt
+    dgpy.RegisterKeyboardInterrupt(console_input_thread.ident)
+
     main_thread_run() # Let main_thread module take over the main thread
-    
+
     pass
 
-def dgp_completer_and_console_input_processor(dgpy_config,console_contextname,localvars,rlcompleter,spec_loader,got_exception):
+
+def dgp_completer_and_console_input_processor(dgpy_config,console_contextname,localvars,rlcompleter,spec_loader,got_exception,ipython):
     # run the spec_loader in sub_thread mode unless we got an exception above
     InitThread() # Allow stuff to run from this thread
     PushThreadContext(initialization_sub_thread_context)
-    
+
     if not got_exception:
         try:
             # run config file after any dgpython_release_main_thread() call
@@ -274,7 +292,7 @@ def dgp_completer_and_console_input_processor(dgpy_config,console_contextname,lo
             sys.stderr.write("Exception running config file (after dgypthon_release_main_thread())...\n")
 
             got_exception = True
-        
+
             localvars["__dgpy_last_exc_info"]=sys.exc_info()
 
             traceback.print_exc()
@@ -289,5 +307,9 @@ def dgp_completer_and_console_input_processor(dgpy_config,console_contextname,lo
             PopThreadContext()
             pass
         pass
-    console_input_processor(dgpy_config,console_contextname,localvars,rlcompleter)
+    if ipython:
+        ipython_input_processor(dgpy_config,console_contextname,localvars)
+    else:
+        readline_input_processor(dgpy_config,console_contextname,localvars,rlcompleter)
+
     pass

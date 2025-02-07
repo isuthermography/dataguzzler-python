@@ -12,6 +12,13 @@ Quick Start and Tutorial
     interpret ``.dgi`` files as Python to help with indentation and
     syntax highlighting.
 
+Because Dataguzzler-Python is a command line tool, the first step to running Dataguzzler-Python is usually opening up a suitable terminal or command prompt window. If you are using Anaconda on Windows, this means opening an Anaconda Prompt or Anaconda PowerShell Prompt from the start menu.
+
+In addition, your terminal or command prompt needs to be configured to use a Python environment that has Dataguzzler-Python installed. If you are using Anaconda, environment selection is performed with ``conda activate``, for example if you followed the Anaconda environment creation  instructions in the  :doc:`installation section <../installation>`,
+::
+   
+   conda activate SNDE
+    
 Dataguzzler-Python is run from the command line by giving it the name
 of a configuration file as its first parameter. The simplest example
 is in ``configdemo.dgp``, which defines a dummy class that pretends to
@@ -252,12 +259,12 @@ To match the screenshot you may need to reduce the default contrast
 You can also access and view the data directly. The ``ande_viewer.dgp``
 configuration automatically stores the ``globalrevision`` with the
 loaded data in the variable ``g`` (alternatively you could obtain
-the latest data with ``g=recdb.latest_globalrev()``).
+the latest data with ``g=recdb.latest``).
 
 You can see the different recordings that are defined with
-``g.list_recordings()`` ::
+``g.rec`` ::
   
-   dgpy> g.list_recordings()
+   dgpy> g.rec
    200 000000000033 [
    "/",
    "/ss_greensinversion",
@@ -269,13 +276,13 @@ arrays, so if we want to access data arrays we usually need to access the
 recording data array reference ("recording ref") corresponding to the
 recording: ::
 
-   dgpy> r = g.get_ndarray_ref("/ss_greensinversion")
+   dgpy> r = g.ref["/ss_greensinversion"]
    200 000000000139 <spatialnde2.ndarray_recording_ref; proxy of <Swig Object of type 'std::shared_ptr< snde::ndarray_recording_ref > *' at 0x7f44c592e540> >
    dgpy>
    
-Then we can look at the data array by calling the ``.data()`` method: ::
+Then we can look at the data array by accessing the ``.data`` attribute: ::
 
-   dgpy> r.data()
+   dgpy> r.data
    200 000000000629 array([[-12328.111 , -12328.111 , -12328.111 , ..., -19782.75  ,
            -19782.75  , -19782.75  ],
           [-12328.111 , -12328.111 , -12328.111 , ..., -19782.75  ,
@@ -294,12 +301,6 @@ Then we can look at the data array by calling the ``.data()`` method: ::
 The metadata goes with the recording itself ``r.rec`` not the recording array reference ``r``, and can be accessed with ``r.rec.metadata``: ::
 
    dgpy> r.rec.metadata
-   200 000000000141 <spatialnde2.constructible_metadata; proxy of <Swig Object of type 'std::shared_ptr< snde::constructible_metadata > *' at 0x7f44c592e600> >
-   dgpy> 
-
-The metadata can be printed in human readable form by converting it to a string: ::
-
-   dgpy> str(r.rec.metadata)
    200 000000000434 r"""Coord3: STR "Depth Index"
    ande_array-axis1_scale: DBLUNITS 0.0005 meters
    IniVal3: DBL 0
@@ -313,7 +314,7 @@ The metadata can be printed in human readable form by converting it to a string:
    ande_array-axis0_scale: DBLUNITS 0.0005 meters
    ande_array-axis1_coord: STR "Y Position"
    """
-   dgpy>
+   dgpy> 
 
 Note the axis label and position information embedded in the metadata.
  
@@ -322,7 +323,7 @@ support for interactive plotting with Matplotlib. This is enabled
 by the ``include(dgpy,"matplotlib.dpi")`` line inside ``ande_viewer.dgp``.
 To new the same data in Matplotlib: ::
   
-   dgpy> plt.imshow(r.data().T,origin="lower")
+   dgpy> plt.imshow(r.data.T,origin="lower")
    200 000000000055 <matplotlib.image.AxesImage object at 0x7f43ffa4ad90>
    dgpy>
 
@@ -340,23 +341,24 @@ You can also define new channels and recordings, but all such changes to the
 recording database must be performed within a transaction. 
 To define a new channel and create a recording with an array of 32 bit floating point numbers: ::
   
-  transact = recdb.start_transaction();
-  testchan = recdb.define_channel("/test channel", "main", recdb.raw());
-  test_ref = snde.create_ndarray_ref(recdb,testchan,recdb.raw(),snde.SNDE_RTN_FLOAT32)
-  globalrev = transact.end_transaction()
+  with recdb.start_transaction() as trans:
+    testchan = recdb.define_channel(trans,"/test channel", "main");
+    test_ref = snde.create_ndarray_ref(trans,testchan,snde.SNDE_RTN_FLOAT32)
+    pass # as an alternative to using "with", you can call trans.end_transaction()
+  globalrev = trans.globalrev()
 
 The above code starts a new transaction, defines a new channel,
 creates a recording for that channel, and ends the transaction but
 does not put any data in the recording. For a particular recording
 database only a single transaction can be open at a time, so all other
 transactions will have to wait between the ``start_transaction()`` and
-``end_transaction()`` lines. The actual recording is ``test_ref.rec``
+the end of the block. The actual recording is ``test_ref.rec``
 and ``test_ref`` is a reference to the array within the recording.
 
 While the above code defined a new recording, it did not provide the
 recording with data and mark it as "ready", so the SpatialNDE2 library
 will still be waiting for data. Additional transactions can proceed
-after ``end_transaction()`` but the recordings added in ``globalrev``
+after the end of the transaction but the recordings added in ``globalrev``
 will not display in the viewer and newer data will accumulate in
 memory waiting for the recording ``test_ref.rec`` to be marked as
 ready.
@@ -406,9 +408,9 @@ destroyed. **Please note that you must not call (directly or indirectly) another
 is because SpatialNDE2 data locks follow Dataguzzler-Python module contexts in the
 locking order so the context switch involved in calling another module would be a locking order violation!
 
-You can obtain a numpy array for the recording array with the ``.data()`` method::
+You can obtain a numpy array for the recording array with the ``.data`` attribute::
 
-  test_ref.data()[:] = np.sin(np.arange(rec_len),dtype='d') 
+  test_ref.data[...] = np.sin(np.arange(rec_len),dtype='d') 
 
 After unlocking all locks you can mark the recording data as ready with the ``mark_data_ready()`` method of
 the recording (Python)::
@@ -417,14 +419,14 @@ the recording (Python)::
 
 Once all recordings data and metadata are complete (and math functions have
 finished executing, etc.) then the global revision (returned from
-``transact.end_transaction()``, above) also becomes complete. That means
+``transact.globalrev()``, above) also becomes complete. That means
 all recordings within the global revision are accessible, and the global
 revision (or a subsequent global revision) will be accessible in
 the viewer.
 
 When acquiring data live the global revision will be constantly
 updating. You can always obtain the most recent complete global revision
-with ``recdb.latest_globalrev()`` or the most recent defined
+with ``recdb.latest_globalrev()`` (or its short form ``recdb.latest``) or the most recent defined
 global revision (which may not yet be complete) with
 ``recdb.latest_defined_globalrev()``. Holding a global revision
 object in a variable will keep the contained recording objects and
@@ -432,24 +434,21 @@ arrays in memory so you can inspect them at your leisure.
 
 Given a global revision object stored in the variable ``globalrev``,
 you can list the recordings in a global revision with
-``globalrev.list_recordings()`` or the available n-dimensional array recording
-references with ``globalrev.list_ndarray_refs()``. Likewise you can
+``globalrev.list_recordings()`` (or its short form ``globalrev.rec``) or the available n-dimensional array recording
+references with ``globalrev.list_ndarray_refs()`` (or its short form ``globalrev.ref``). Likewise you can
 obtain a recording or an n-dimensional array reference with
-``globalrev.get_recording()`` or ``globalrev.get_ndarray_ref()``
+``globalrev.rec[]`` or ``globalrev.ref[]``
 respectively. You can get an array reference from a recording
-with the ``.reference_ndarray()`` method of the recording.
+with the ``.array[]`` attribute of the recording.
 
 As above, array data is accessed as a numpy array returned by the
-``.data()`` method of the array reference, and metadata is accessed
-via the ``.metadata`` class member. You can print out the metadata
-details by converting it to a string, e.g.::
-  
-   str(rec.metadata)
+``.data`` attribute of the array reference, and metadata is accessed
+via the ``.metadata`` attribute.
 
 
 SpatialNDE2 metadata is always immutable once the array is complete. With rare exceptions,
 SpatialNDE2 array data is supposed to be immutable once the array is complete
-ready so the return from ``.data()`` should be considered read-only.
+ready so the return from ``.data`` should be considered read-only.
 
 
 
