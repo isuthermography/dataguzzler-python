@@ -117,7 +117,7 @@ if "--with-dgold" in sys.argv:
     
     pass
 
-console_scripts=["dataguzzler-python"]
+console_scripts=["dataguzzler-python","dgpy"]
 
 console_scripts_entrypoints = [ "%s = dataguzzler_python.bin.%s:main" % (script,script.replace("-",'_')) for script in console_scripts ]
 
